@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# 커밋 메시지 형식 검사: <type>(<scope>): <요약> (#<이슈번호>)
+msg_file="$1"
+first_line=$(head -n1 "$msg_file")
+
+# 머지·리버트 커밋은 통과
+if [[ "$first_line" =~ ^(Merge|Revert) ]]; then
+  exit 0
+fi
+
+pattern='^(feat|fix|perf|exp|refactor|test|docs|chore)(\([a-z0-9-]+\))?: .+'
+if ! echo "$first_line" | grep -Eq "$pattern"; then
+  echo "❌ 커밋 메시지 형식이 맞지 않아요."
+  echo "   형식: <type>(<scope>): <요약> (#<이슈번호>)"
+  echo "   type: feat fix perf exp refactor test docs chore"
+  echo "   예시: feat(cdc): Debezium 커넥터 설정 추가 (#12)"
+  exit 1
+fi
+
+# 이슈 번호가 없으면 경고만 (막지는 않음)
+if ! echo "$first_line" | grep -Eq '\(#[0-9]+\)'; then
+  echo "⚠️  이슈 번호 (#N)가 없어요. 의도한 거라면 무시해도 됩니다."
+fi
+exit 0

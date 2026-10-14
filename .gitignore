@@ -1,0 +1,25 @@
+# 비밀 정보
+.env
+
+# Java / Gradle
+build/
+.gradle/
+out/
+*.class
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/settings.json
+*.iml
+
+# OS
+.DS_Store
+
+# 로그·데이터
+*.log
+data/
+infra/**/data/
+
+# Claude Code 개인 설정
+.claude/settings.local.json
