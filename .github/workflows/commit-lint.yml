@@ -1,0 +1,40 @@
+# 커밋 메시지·PR 제목 컨벤션 검사
+# 로컬 hook(.githooks/commit-msg)은 --no-verify로 우회될 수 있어 CI에서 한 번 더 확인
+name: commit-lint
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Commit convention
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: PR 제목 검사
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          printf '%s\n' "$TITLE" > /tmp/msg
+          bash .githooks/commit-msg /tmp/msg
+
+      - name: PR 커밋 메시지 검사
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          fail=0
+          while IFS= read -r sha; do
+            git log -1 --format=%B "$sha" > /tmp/msg
+            echo "▶ $(head -n1 /tmp/msg)"
+            bash .githooks/commit-msg /tmp/msg || fail=1
+          done < <(git rev-list --no-merges "$BASE..$HEAD")
+          exit "$fail"

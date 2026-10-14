@@ -1,0 +1,46 @@
+# 인프라 설정·스크립트 정적 검사
+name: infra
+
+on:
+  pull_request:
+    paths:
+      - "docker-compose.yml"
+      - "infra/**"
+      - "scripts/**"
+      - "experiments/scripts/**"
+      - ".githooks/**"
+      - ".env.example"
+      - ".github/workflows/infra.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 셸 스크립트 검사 (shellcheck)
+        run: |
+          files=$(git ls-files '*.sh' '.githooks/*')
+          if [ -n "$files" ]; then
+            echo "$files"
+            # shellcheck disable=SC2086
+            shellcheck $files
+          fi
+
+      - name: docker compose 문법 검사
+        if: hashFiles('docker-compose.yml') != ''
+        run: |
+          cp .env.example .env
+          docker compose config --quiet
+          echo "docker-compose.yml OK"
+
+      - name: JSON 설정 검사 (커넥터 설정 등)
+        run: |
+          for f in $(git ls-files 'infra/*.json'); do
+            jq empty "$f" && echo "OK  $f"
+          done
