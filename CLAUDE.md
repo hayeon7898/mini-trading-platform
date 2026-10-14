@@ -43,6 +43,17 @@ scope 예: `order`, `cdc`, `kafka`, `clickhouse`, `infra`, `load`, `monitoring`,
 - 커밋·푸시·PR 생성·머지 전에는 **항상 사용자 확인**을 받는다.
 - 요약은 한국어로, 50자 안팎.
 
+## CI/CD (GitHub Actions)
+
+| 워크플로 | 트리거 | 하는 일 |
+|---|---|---|
+| `order-server` | `order-server/**` 변경 PR, main 푸시 | Gradle 빌드·테스트. main 푸시 시 GHCR에 이미지 배포 (Dockerfile 있을 때) |
+| `infra` | compose·infra·스크립트 변경 PR | shellcheck, `docker compose config`, JSON 문법 검사 |
+| `commit-lint` | 모든 PR | PR 제목과 커밋 메시지 컨벤션 검사 |
+
+- CI가 실패한 PR은 머지하지 않는다. 실패 원인을 먼저 고친다.
+- 워크플로를 고칠 때는 actions 버전을 메이저 태그로 고정한다 (Dependabot이 월 1회 업데이트 PR 생성).
+
 ## 명령어
 
 | 명령어 | 하는 일 |

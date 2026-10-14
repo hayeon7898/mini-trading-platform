@@ -19,7 +19,9 @@ git push -u origin HEAD
 gh pr create --base main --title "<제목>" --body "<본문>"
 ```
 
-7. PR 링크를 출력하고, 머지할지 묻는다. 머지하기로 하면:
+7. PR 링크를 출력하고 `gh pr checks --watch` 로 CI 결과를 기다린다.
+   - 실패한 체크가 있으면 `gh run view --log-failed` 로 원인을 확인해 설명하고, 머지하지 않는다.
+8. CI가 모두 통과하면 머지할지 묻는다. 머지하기로 하면:
 
 ```bash
 gh pr merge --merge --delete-branch
