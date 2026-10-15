@@ -4,19 +4,12 @@
 
 원장 DB의 모든 변경(INSERT/UPDATE)을 **누락 없이, 커밋 순서대로** Kafka에 발행한다.
 
-## MySQL 설정 (`infra/mysql/my.cnf`)
+## MySQL 설정
 
-```ini
-[mysqld]
-server-id                = 1
-log_bin                  = mysql-bin
-binlog_format            = ROW
-binlog_row_image         = FULL
-gtid_mode                = ON
-enforce_gtid_consistency = ON
-```
+`docker-compose.yml`의 `mysql.command`에 실행 옵션으로 지정한다. (Windows 마운트 시 `my.cnf`가 world-writable로 무시되는 문제 때문에 설정 파일을 쓰지 않음)
 
-Debezium 전용 계정 권한: `SELECT, RELOAD, SHOW DATABASES, REPLICATION SLAVE, REPLICATION CLIENT`
+- `--binlog-format=ROW`, `--binlog-row-image=FULL`, `--gtid-mode=ON`, `--enforce-gtid-consistency=ON`, `--server-id=1`
+- Debezium 전용 계정: `infra/mysql/init/02-debezium-user.sh` (`SELECT, RELOAD, SHOW DATABASES, REPLICATION SLAVE, REPLICATION CLIENT`)
 
 ## Kafka 클러스터
 
@@ -34,7 +27,7 @@ Debezium 전용 계정 권한: `SELECT, RELOAD, SHOW DATABASES, REPLICATION SLAV
     "database.hostname": "mysql",
     "database.port": "3306",
     "database.user": "debezium",
-    "database.password": "${secret}",
+    "database.password": "${env:DEBEZIUM_PASSWORD}",
     "database.server.id": "5400",
     "topic.prefix": "mts",
     "database.include.list": "trading",
@@ -62,6 +55,7 @@ Debezium 전용 계정 권한: `SELECT, RELOAD, SHOW DATABASES, REPLICATION SLAV
 
 ## 확인해야 할 함정
 
+- **토픽 선생성**: 토픽 자동 생성이 꺼져 있으므로 커넥터 등록 **전에** `./scripts/create-topics.sh` 실행. 안 하면 커넥터가 토픽을 못 찾아 실패한다.
 - **타임스탬프 포맷**: DATETIME 컬럼이 어떤 형태(epoch millis 등)로 나오는지 실제 메시지를 보고 ClickHouse 컬럼 타입을 맞춘다.
 - **스냅샷 vs 스트리밍**: 커넥터 최초 기동 시 기존 1,000만 건을 스냅샷으로 읽는다. 시간이 오래 걸리면 시드 데이터 적재 전에 커넥터를 등록하거나 스냅샷 모드를 조정한다.
 - **메시지 키**: 기본은 PK. 같은 계좌의 주문 순서가 필요해지면 키 재설정이 필요하다 (2단계 과제).
