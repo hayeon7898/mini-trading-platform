@@ -22,6 +22,8 @@
 
 모든 작업은 이슈 → 브랜치 → 커밋 → PR 순서로 한다. main에 직접 커밋하지 않는다.
 
+**이슈 제목**: `[TYPE] 제목` (TYPE 대문자, 예: `[CHORE] docker-compose 인프라 구성`)
+
 **브랜치**: `<type>/<이슈번호>-<짧은-설명>` (예: `feat/12-debezium-connector`)
 
 **커밋 메시지**: `<type>(<scope>): <요약> (#<이슈번호>)`

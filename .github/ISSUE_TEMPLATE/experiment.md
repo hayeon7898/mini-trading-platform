@@ -1,7 +1,7 @@
 ---
 name: 실험
 about: 장애·부하 재현 실험
-title: "[실험] "
+title: "[EXP] "
 labels: "exp"
 ---
 
