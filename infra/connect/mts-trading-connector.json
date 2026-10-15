@@ -1,0 +1,22 @@
+{
+  "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+  "database.hostname": "mysql",
+  "database.port": "3306",
+  "database.user": "debezium",
+  "database.password": "${env:DEBEZIUM_PASSWORD}",
+  "database.server.id": "5400",
+  "topic.prefix": "mts",
+  "database.include.list": "trading",
+  "table.include.list": "trading.orders,trading.executions",
+  "schema.history.internal.kafka.bootstrap.servers": "kafka-1:9092",
+  "schema.history.internal.kafka.topic": "schema-history.mts",
+  "snapshot.mode": "initial",
+  "decimal.handling.mode": "string",
+  "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+  "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+  "key.converter.schemas.enable": "false",
+  "value.converter.schemas.enable": "false",
+  "transforms": "unwrap",
+  "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+  "transforms.unwrap.add.fields": "op,source.ts_ms"
+}
