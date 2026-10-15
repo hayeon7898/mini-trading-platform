@@ -78,7 +78,7 @@ flowchart TD
 
 | 구성 | 버전 |
 |---|---|
-| Java / Spring Boot | 21 / 3.x |
+| Java / Spring Boot | 21 / 4.1.1|
 | MySQL | 8.x |
 | Kafka | (기록) |
 | Debezium | (기록) |
