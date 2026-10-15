@@ -28,7 +28,7 @@ disable-model-invocation: true
    - 체크박스 하나가 너무 작으면 묶고, 너무 크면 나눈다. 이슈 하나는 반나절~하루 작업이 적당하다.
    - 작업 순서대로 정렬한다.
 4. 제목, 라벨, 요약을 표로 보여주고 **사용자 확인을 받는다.**
-5. 확인 후 생성한다. 스펙 06(2단계 백로그)이면 `phase-2` 라벨, 마일스톤 생략.
+5. 확인 후 생성한다. 스펙 06(2단계 백로그)이면 `phase-2` 라벨을 붙인다.
 
 ## 단건 이슈
 
@@ -37,6 +37,10 @@ disable-model-invocation: true
 2. `gh issue list --state open` 으로 비슷한 이슈가 있는지 확인한다.
 3. 제목, 라벨, 본문을 보여주고 **사용자 확인을 받는다.**
 
+## 마일스톤
+
+`gh api repos/{owner}/{repo}/milestones --jq '.[].title'` 로 열린 마일스톤 목록을 확인하고, 이슈 성격에 맞는 것을 골라 확인 단계에서 함께 보여준다. 맞는 게 없으면 생략한다.
+
 ## 생성 명령
 
 본문은 `.github/ISSUE_TEMPLATE/task.md` (실험이면 `experiment.md`) 형식을 따른다.
@@ -44,8 +48,8 @@ disable-model-invocation: true
 ```bash
 gh issue create \
   --title "[TYPE] <제목>" \
-  --label "<type>" \
-  --milestone "M1-Setup" \
+  --label "<type>,phase-1[,spec-NN]" \
+  --milestone "<마일스톤>" \
   --body-file - <<'BODY'
 <본문>
 BODY
