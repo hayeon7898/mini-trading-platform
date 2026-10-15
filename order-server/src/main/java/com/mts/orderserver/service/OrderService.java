@@ -51,4 +51,17 @@ public class OrderService {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));
     }
+
+    /**
+     * 미체결 잔량 취소. 행 락(FOR UPDATE)을 잡은 뒤 상태를 확인하므로,
+     * 체결 시뮬레이터가 같은 주문을 동시에 체결해도 "취소됐는데 체결됨"이 생기지 않는다.
+     * 변경은 트랜잭션 커밋 시 dirty checking으로 UPDATE된다.
+     */
+    @Transactional
+    public Order cancel(Long orderId) {
+        Order order = orderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
+        order.cancel(LocalDateTime.now(clock));
+        return order;
+    }
 }

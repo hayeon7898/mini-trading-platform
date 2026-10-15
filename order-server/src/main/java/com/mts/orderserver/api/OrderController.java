@@ -39,4 +39,10 @@ public class OrderController {
     public OrderResponse get(@PathVariable Long id) {
         return OrderResponse.from(orderService.get(id));
     }
+
+    /** 미체결 잔량 취소. 잔량이 없으면(FILLED, CANCELED) 409. */
+    @PostMapping("/{id}/cancel")
+    public OrderResponse cancel(@PathVariable Long id) {
+        return OrderResponse.from(orderService.cancel(id));
+    }
 }
