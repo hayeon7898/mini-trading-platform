@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: order-server
+  datasource:
+    # 시간대: 세션을 UTC로 고정해 DB의 NOW()와 앱이 같은 기준을 쓰게 한다.
+    url: jdbc:mysql://localhost:3307/trading?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      # 스키마의 단일 출처는 infra/mysql/init/01-schema.sql. Hibernate는 검증만 한다.
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
