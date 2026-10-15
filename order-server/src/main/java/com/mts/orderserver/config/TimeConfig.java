@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Clock;
+import java.time.Duration;
 
 /**
  * 원장 시각은 UTC로 저장한다 (Debezium이 DATETIME을 UTC 기준 epoch millis로 내보내기 때문).
