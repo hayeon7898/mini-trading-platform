@@ -40,6 +40,8 @@ create schema-history.mts --partitions 1 --replication-factor "$REPLICATION_FACT
 
 echo
 echo "== 확인 =="
+# head -1 은 첫 줄만 읽고 파이프를 닫아 kafka-topics.sh가 SIGPIPE로 비정상 종료됨
+# → pipefail 때문에 스크립트가 중단되므로, 입력을 끝까지 읽는 awk로 첫 줄만 출력
 for t in mts.trading.orders mts.trading.executions schema-history.mts; do
-  topics --describe --topic "$t" | head -1
+  topics --describe --topic "$t" | awk 'NR == 1'
 done
