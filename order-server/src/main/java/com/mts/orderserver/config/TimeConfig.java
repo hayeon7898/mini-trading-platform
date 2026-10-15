@@ -14,6 +14,6 @@ public class TimeConfig {
 
     @Bean
     public Clock clock() {
-        return Clock.systemUTC();
+        return Clock.tick(Clock.systemUTC(), Duration.ofMillis(1));
     }
 }
