@@ -172,5 +172,45 @@ services:
       retries: 18
       start_period: 40s
 
+  # ---------------------------------------------------------------
+  # ClickHouse: 실시간 분석 저장소 (OLAP)
+  #   HTTP: http://localhost:8123   Native: localhost:9000
+  # ---------------------------------------------------------------
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.8.8.8   # 26.8 LTS
+    container_name: mts-clickhouse
+    hostname: clickhouse
+    ports:
+      - "8123:8123"     # HTTP 인터페이스 (curl, DBeaver 등)
+      - "9000:9000"     # Native 프로토콜 (clickhouse-client)
+    depends_on:
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+    environment:
+      CLICKHOUSE_DB: mts
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1   # SQL로 사용자·권한 관리 허용
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      # 스펙 03의 Kafka 엔진·MV·타깃 테이블 SQL을 여기에 추가 (볼륨이 비었을 때 1회 실행)
+      - ./infra/clickhouse/init:/docker-entrypoint-initdb.d:ro
+    ulimits:
+      nofile:             # 공식 권장값: 컬럼별로 파일을 다루므로 파일 핸들을 많이 씀
+        soft: 262144
+        hard: 262144
+    mem_limit: 2g       # 서버 메모리 상한은 컨테이너 제한(cgroup)을 기준으로 자동 계산됨
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
 volumes:
   mysql-data:
+  clickhouse-data:
