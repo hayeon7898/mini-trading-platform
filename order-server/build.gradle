@@ -34,5 +34,7 @@ dependencies {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+    useJUnitPlatform()
+    // 운영 서버가 KST로 떠도 DB에는 UTC가 저장되는지 검증 (OrderTimeStorageTest)
+    systemProperty 'user.timezone', 'Asia/Seoul'
 }

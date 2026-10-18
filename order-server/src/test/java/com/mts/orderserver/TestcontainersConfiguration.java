@@ -8,13 +8,16 @@ import org.testcontainers.utility.DockerImageName;
 import org.testcontainers.utility.MountableFile;
 
 @TestConfiguration(proxyBeanMethods = false)
-class TestcontainersConfiguration {
+public class TestcontainersConfiguration {
 
 	@Bean
 	@ServiceConnection
 	MySQLContainer mysqlContainer() {
 		return new MySQLContainer(DockerImageName.parse("mysql:8.4.8"))
 			.withDatabaseName("trading")
+			.withUrlParam("connectionTimeZone", "UTC")
+			.withUrlParam("forceConnectionTimeZoneToSession", "true")
+			.withUrlParam("preserveInstants", "false")
 			.withCopyFileToContainer(
 					MountableFile.forHostPath("../infra/mysql/init/01-schema.sql"),
 					"/docker-entrypoint-initdb.d/01-schema.sql");
