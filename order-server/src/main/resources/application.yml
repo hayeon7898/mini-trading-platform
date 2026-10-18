@@ -11,3 +11,9 @@ spring:
     hibernate:
       # 스키마의 단일 출처는 infra/mysql/init/01-schema.sql. Hibernate는 검증만 한다.
       ddl-auto: validate
+  simulator:
+  enabled: ${SIMULATOR_ENABLED:false}
+  interval: 100ms
+  batch-size: 50
+  workers: 2
+  price-spread: 0.01
