@@ -94,6 +94,36 @@ public class Order {
     }
 
     /**
+     * 잔량 중 일부(또는 전부)를 체결하고, 그 체결 기록을 돌려준다.
+     * 주문 갱신과 체결 기록 생성을 한 메서드로 묶어, 둘 중 하나만 일어나는 일을 막는다.
+     * 호출하는 쪽은 반환된 Execution을 같은 트랜잭션에서 저장해야 한다.
+     *
+     * @param qty   체결 수량 (1 이상, 잔량 이하)
+     * @param price 체결가
+     * @param now   UTC 시각 (Clock에서 만든 값)
+     * @throws IllegalStateException    잔량이 없는 주문(FILLED, CANCELED)
+     * @throws IllegalArgumentException 수량이 0 이하이거나 잔량을 넘을 때, 가격이 0 이하일 때
+     */
+    public Execution fill(int qty, BigDecimal price, LocalDateTime now) {
+        if (!isOpen()) {
+            throw new IllegalStateException("order %d cannot be filled in status %s".formatted(id, status));
+        }
+        if (qty <= 0 || qty > remainingQty()) {
+            throw new IllegalArgumentException(
+                    "fill quantity %d out of range (remaining %d)".formatted(qty, remainingQty()));
+        }
+        Objects.requireNonNull(price, "price");
+        if (price.signum() <= 0) {
+            throw new IllegalArgumentException("price must be positive: " + price);
+        }
+
+        this.filledQty += qty;
+        this.status = (filledQty == quantity) ? OrderStatus.FILLED : OrderStatus.PARTIAL;
+        this.updatedAt = now;
+        return Execution.of(this, qty, price, now);
+    }
+
+    /**
      * 미체결 잔량을 취소한다. 이미 체결된 수량(filledQty)은 그대로 남는다.
      * 동시 체결과의 경합은 호출하는 쪽이 행 락을 잡아 막는다.
      *
@@ -111,6 +141,11 @@ public class Order {
     /** 미체결 잔량이 남아 체결·취소 대상이 되는 상태인가. */
     public boolean isOpen() {
         return status == OrderStatus.ACCEPTED || status == OrderStatus.PARTIAL;
+    }
+
+    /** 아직 체결되지 않은 수량. */
+    public int remainingQty() {
+        return quantity - filledQty;
     }
 
     public Long getId() { return id; }

@@ -49,6 +49,22 @@ public class Execution {
     protected Execution() {
     }
 
+    /**
+     * 주문에서 계좌·종목·방향을 복사해 체결 기록을 만든다.
+     * 외부에서는 Order.fill()을 통해서만 만들도록 package-private으로 둔다.
+     */
+    static Execution of(Order order, int quantity, BigDecimal price, LocalDateTime executedAt) {
+        Execution e = new Execution();
+        e.orderId = order.getId();
+        e.accountId = order.getAccountId();
+        e.symbol = order.getSymbol();
+        e.side = order.getSide();
+        e.price = price;
+        e.quantity = quantity;
+        e.executedAt = executedAt;
+        return e;
+    }
+
     public Long getId() { return id; }
     public Long getOrderId() { return orderId; }
     public Long getAccountId() { return accountId; }
