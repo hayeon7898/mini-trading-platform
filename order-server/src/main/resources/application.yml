@@ -3,7 +3,7 @@ spring:
     name: order-server
   datasource:
     # 시간대: 세션을 UTC로 고정해 DB의 NOW()와 앱이 같은 기준을 쓰게 한다.
-    url: jdbc:mysql://localhost:3307/trading?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true
+    url: jdbc:mysql://localhost:3307/trading?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&preserveInstants=false
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
   jpa:
