@@ -39,12 +39,14 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> lockFillable(@Param("limit") int limit);
 
     /*
-     * 계좌별 주문 내역 (05 스펙 개선 대상).
+     * 계좌별 주문 내역.
      * - 상태 필터 유무로 메서드를 나눈다. (:status IS NULL OR ...) 한 쿼리로 합치면
-     *   옵티마이저가 인덱스를 제대로 못 써 05의 개선 효과가 흐려진다.
-     * - 반환 타입이 List라 Pageable을 줘도 COUNT 쿼리가 나가지 않는다 (LIMIT만 적용).
+     *   옵티마이저가 인덱스를 제대로 못 쓴다.
+     * - 반환 타입이 List라 Pageable을 줘도 COUNT 쿼리가 나가지 않는다 (LIMIT/OFFSET만 적용).
      * - 기간은 [from, to) 반열린 구간. created_at이 같으면 id로 순서를 고정한다.
      */
+
+    /** OFFSET 방식 (Pageable의 page로 건너뛸 행 수 지정). */
     @Query("""
             select o from Order o
             where o.accountId = :accountId
@@ -68,4 +70,42 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
                                           @Param("from") LocalDateTime from,
                                           @Param("to") LocalDateTime to,
                                           Pageable pageable);
+
+    /*
+     * 커서 방식: (created_at, id) < (cursorAt, cursorId) 인 행부터.
+     * created_at <= cursorAt를 따로 두어 인덱스 범위의 상한이 되게 하고,
+     * 같은 시각이면 id로 이어지게 한다. 건너뛸 행을 읽지 않으므로 깊이와 무관하게 비용이 일정하다.
+     */
+
+    @Query("""
+            select o from Order o
+            where o.accountId = :accountId
+              and o.createdAt >= :from and o.createdAt < :to
+              and o.createdAt <= :cursorAt
+              and (o.createdAt < :cursorAt or o.id < :cursorId)
+            order by o.createdAt desc, o.id desc
+            """)
+    List<Order> findAccountOrdersAfter(@Param("accountId") Long accountId,
+                                       @Param("from") LocalDateTime from,
+                                       @Param("to") LocalDateTime to,
+                                       @Param("cursorAt") LocalDateTime cursorAt,
+                                       @Param("cursorId") Long cursorId,
+                                       Pageable pageable);
+
+    @Query("""
+            select o from Order o
+            where o.accountId = :accountId
+              and o.status = :status
+              and o.createdAt >= :from and o.createdAt < :to
+              and o.createdAt <= :cursorAt
+              and (o.createdAt < :cursorAt or o.id < :cursorId)
+            order by o.createdAt desc, o.id desc
+            """)
+    List<Order> findAccountOrdersByStatusAfter(@Param("accountId") Long accountId,
+                                               @Param("status") OrderStatus status,
+                                               @Param("from") LocalDateTime from,
+                                               @Param("to") LocalDateTime to,
+                                               @Param("cursorAt") LocalDateTime cursorAt,
+                                               @Param("cursorId") Long cursorId,
+                                               Pageable pageable);
 }

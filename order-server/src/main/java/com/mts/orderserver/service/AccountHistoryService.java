@@ -19,8 +19,7 @@ import java.util.List;
 
 /**
  * 계좌별 주문·체결 내역 조회.
- * 기간 기본값은 최근 30일이고 최대 기간 제한은 두지 않는다
- * (넓은 기간 조회가 느려지는 것 자체가 05 스펙의 측정 대상).
+ * 기간 기본값은 최근 30일이고 최대 기간 제한은 두지 않는다.
  */
 @Service
 @Transactional(readOnly = true)
@@ -45,13 +44,29 @@ public class AccountHistoryService {
 
     /**
      * @param status null이면 전체 상태
+     * @param page   OFFSET 방식 페이지 번호 (0부터). cursor와 함께 쓸 수 없다
+     * @param cursor 커서 방식의 시작 위치. null이면 첫 페이지
      */
-    public List<Order> orders(Long accountId, Instant from, Instant to, OrderStatus status, int size) {
+    public List<Order> orders(Long accountId, Instant from, Instant to, OrderStatus status,
+                              int size, Integer page, OrderCursor cursor) {
+        if (page != null && cursor != null) {
+            throw new InvalidPagingException("page and cursor cannot be used together");
+        }
         Period p = resolve(accountId, from, to);
-        PageRequest page = PageRequest.ofSize(size);
+
+        if (cursor != null) {
+            PageRequest first = PageRequest.ofSize(size);
+            return status == null
+                    ? orderRepository.findAccountOrdersAfter(
+                            accountId, p.from(), p.to(), cursor.createdAt(), cursor.id(), first)
+                    : orderRepository.findAccountOrdersByStatusAfter(
+                            accountId, status, p.from(), p.to(), cursor.createdAt(), cursor.id(), first);
+        }
+
+        PageRequest offset = PageRequest.of(page == null ? 0 : page, size);
         return status == null
-                ? orderRepository.findAccountOrders(accountId, p.from(), p.to(), page)
-                : orderRepository.findAccountOrdersByStatus(accountId, status, p.from(), p.to(), page);
+                ? orderRepository.findAccountOrders(accountId, p.from(), p.to(), offset)
+                : orderRepository.findAccountOrdersByStatus(accountId, status, p.from(), p.to(), offset);
     }
 
     public List<Execution> executions(Long accountId, Instant from, Instant to, int size) {
