@@ -1,6 +1,8 @@
 package com.mts.orderserver.api;
 
 import com.mts.orderserver.domain.OrderNotCancelableException;
+import com.mts.orderserver.service.AccountNotFoundException;
+import com.mts.orderserver.service.InvalidPeriodException;
 import com.mts.orderserver.service.OrderNotFoundException;
 import com.mts.orderserver.service.UnknownReferenceException;
 import org.springframework.http.HttpHeaders;
@@ -20,14 +22,25 @@ import java.util.Objects;
 
 /**
  * 오류 응답은 RFC 9457 ProblemDetail(application/problem+json)로 통일한다.
- * ResponseEntityExceptionHandler를 상속해 Spring MVC 표준 예외(본문 파싱 실패, 타입 불일치 등)도 같은 형식이 된다.
+ * ResponseEntityExceptionHandler를 상속해 Spring MVC 표준 예외(본문 파싱 실패, 타입 불일치,
+ * 요청 파라미터 메서드 검증 등)도 같은 형식이 된다.
  */
 @RestControllerAdvice
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(OrderNotFoundException.class)
-    public ProblemDetail handleNotFound(OrderNotFoundException e) {
+    public ProblemDetail handleOrderNotFound(OrderNotFoundException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    @ExceptionHandler(AccountNotFoundException.class)
+    public ProblemDetail handleAccountNotFound(AccountNotFoundException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, e.getMessage());
+    }
+
+    @ExceptionHandler(InvalidPeriodException.class)
+    public ProblemDetail handleInvalidPeriod(InvalidPeriodException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 
     @ExceptionHandler(UnknownReferenceException.class)
