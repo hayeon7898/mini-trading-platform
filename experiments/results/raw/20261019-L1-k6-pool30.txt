@@ -1,0 +1,79 @@
+# L1 k6 결과 — HikariCP 풀 30
+# k6 2.3.0, constant-arrival-rate, POST /orders, 시뮬레이터 켬
+
+===== 100 TPS / 1m =====
+  █ THRESHOLDS 
+
+    http_req_failed
+    ✓ 'rate<0.01' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 5954    98.917413/s
+    checks_succeeded...: 100.00% 5954 out of 5954
+    checks_failed......: 0.00%   0 out of 5954
+
+    ✓ status is 201
+
+    HTTP
+    http_req_duration..............: avg=52.99ms p(50)=33.02ms p(95)=93.91ms p(99)=563.78ms max=948.49ms
+      { expected_response:true }...: avg=52.99ms p(50)=33.02ms p(95)=93.91ms p(99)=563.78ms max=948.49ms
+    http_req_failed................: 0.00%  0 out of 5954
+    http_reqs......................: 5954   98.917413/s
+
+    EXECUTION
+    dropped_iterations.............: 47     0.78084/s
+    iteration_duration.............: avg=53.3ms  p(50)=33.29ms p(95)=94.15ms p(99)=564.21ms max=948.71ms
+    iterations.....................: 5954   98.917413/s
+    vus............................: 30     min=2         max=40
+    vus_max........................: 67     min=32        max=67
+
+    NETWORK
+    data_received..................: 2.1 MB 35 kB/s
+    data_sent......................: 1.3 MB 21 kB/s
+
+
+
+===== 500 TPS / 2m =====
+  █ THRESHOLDS 
+
+    http_req_failed
+    ✓ 'rate<0.01' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 59618   496.768434/s
+    checks_succeeded...: 100.00% 59618 out of 59618
+    checks_failed......: 0.00%   0 out of 59618
+
+    ✓ status is 201
+
+    HTTP
+    http_req_duration..............: avg=186.91ms p(50)=85.63ms p(95)=789.75ms p(99)=1.42s max=4.04s
+      { expected_response:true }...: avg=186.91ms p(50)=85.63ms p(95)=789.75ms p(99)=1.42s max=4.04s
+    http_req_failed................: 0.00% 0 out of 59618
+    http_reqs......................: 59618 496.768434/s
+
+    EXECUTION
+    dropped_iterations.............: 382   3.183024/s
+    iteration_duration.............: avg=187.16ms p(50)=85.87ms p(95)=790.07ms p(99)=1.42s max=4.04s
+    iterations.....................: 59618 496.768434/s
+    vus............................: 9     min=9          max=410
+    vus_max........................: 444   min=100        max=444
+
+    NETWORK
+    data_received..................: 21 MB 175 kB/s
+    data_sent......................: 13 MB 105 kB/s
+
+# docker stats (500 TPS 중)
+mts-mysql          CPU 22.33%   MEM 624.5MiB / 1GiB
+mts-order-server   CPU 13.09%   MEM 523.7MiB / 1GiB
+
+# MySQL (서버 시작 이후 누적)
+innodb_flush_log_at_trx_commit  1
+sync_binlog                     1
+Com_commit                      425545
+Innodb_data_fsyncs              352849
+Innodb_os_log_fsyncs            334640
