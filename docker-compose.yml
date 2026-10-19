@@ -42,6 +42,19 @@ x-kafka-env: &kafka-env
 
 services:
   # ---------------------------------------------------------------
+  # Prometheus: 모니터링 수집기
+  # ---------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v3.15.0 
+    container_name: mts-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus:/etc/prometheus:ro
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    mem_limit: 512m
+  # ---------------------------------------------------------------
   # MySQL: 주문·체결 원장 DB (CDC 원천)
   # ---------------------------------------------------------------
   mysql:
