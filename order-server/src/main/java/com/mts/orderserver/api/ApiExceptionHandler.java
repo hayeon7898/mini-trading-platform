@@ -2,6 +2,7 @@ package com.mts.orderserver.api;
 
 import com.mts.orderserver.domain.OrderNotCancelableException;
 import com.mts.orderserver.service.AccountNotFoundException;
+import com.mts.orderserver.service.InvalidPagingException;
 import com.mts.orderserver.service.InvalidPeriodException;
 import com.mts.orderserver.service.OrderNotFoundException;
 import com.mts.orderserver.service.UnknownReferenceException;
@@ -40,6 +41,11 @@ public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(InvalidPeriodException.class)
     public ProblemDetail handleInvalidPeriod(InvalidPeriodException e) {
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
+    }
+
+    @ExceptionHandler(InvalidPagingException.class)
+    public ProblemDetail handleInvalidPaging(InvalidPagingException e) {
         return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, e.getMessage());
     }
 

@@ -1,0 +1,5 @@
+depth    | offset(ms)   | cursor(ms)   | same_first_id
+0        | 31.6         | 23.9         | yes
+1000     | 25.0         | 20.3         | yes
+10000    | 64.5         | 19.1         | yes
+40000    | 195.5        | 23.1         | yes
