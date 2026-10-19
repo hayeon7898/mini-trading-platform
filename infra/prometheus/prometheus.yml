@@ -1,0 +1,10 @@
+# order-server는 호스트(WSL)에서 bootRun으로 실행되므로 host.docker.internal로 수집한다.
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: order-server
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["mts-order-server:8080"]
