@@ -1,11 +1,13 @@
 package com.mts.orderserver.domain;
 
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,4 +37,35 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             FOR UPDATE SKIP LOCKED
             """, nativeQuery = true)
     List<Order> lockFillable(@Param("limit") int limit);
+
+    /*
+     * 계좌별 주문 내역 (05 스펙 개선 대상).
+     * - 상태 필터 유무로 메서드를 나눈다. (:status IS NULL OR ...) 한 쿼리로 합치면
+     *   옵티마이저가 인덱스를 제대로 못 써 05의 개선 효과가 흐려진다.
+     * - 반환 타입이 List라 Pageable을 줘도 COUNT 쿼리가 나가지 않는다 (LIMIT만 적용).
+     * - 기간은 [from, to) 반열린 구간. created_at이 같으면 id로 순서를 고정한다.
+     */
+    @Query("""
+            select o from Order o
+            where o.accountId = :accountId
+              and o.createdAt >= :from and o.createdAt < :to
+            order by o.createdAt desc, o.id desc
+            """)
+    List<Order> findAccountOrders(@Param("accountId") Long accountId,
+                                  @Param("from") LocalDateTime from,
+                                  @Param("to") LocalDateTime to,
+                                  Pageable pageable);
+
+    @Query("""
+            select o from Order o
+            where o.accountId = :accountId
+              and o.status = :status
+              and o.createdAt >= :from and o.createdAt < :to
+            order by o.createdAt desc, o.id desc
+            """)
+    List<Order> findAccountOrdersByStatus(@Param("accountId") Long accountId,
+                                          @Param("status") OrderStatus status,
+                                          @Param("from") LocalDateTime from,
+                                          @Param("to") LocalDateTime to,
+                                          Pageable pageable);
 }
