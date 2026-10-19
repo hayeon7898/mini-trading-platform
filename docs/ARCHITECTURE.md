@@ -76,14 +76,15 @@ flowchart TD
 
 작성 시점의 안정 버전으로 **정확한 버전을 고정**한다 (`latest` 태그 금지). 정한 버전은 이 표에 기록한다.
 
-| 구성 | 버전 |
-|---|---|
-| Java / Spring Boot | 21 / 4.1.1|
-| MySQL | 8.x |
-| Kafka | (기록) |
-| Debezium | (기록) |
-| ClickHouse | (기록) |
-| k6 | (기록) |
+| 구성 | 버전 |역할|
+|---|---|---|
+| Java / Spring Boot | `21 / 4.1.1`|-|
+| MySQL | `8.x` |-|
+| Kafka | (기록) |-|
+| Debezium | (기록) |-|
+| ClickHouse | (기록) |-|
+| k6 | `grafana/k6:2.3.0` | 부하 생성 (constant-arrival-rate) |
+| Prometheus | `prom/prometheus:v3.15.0` | order-server 지표 수집 |
 
 ## 7. 디렉토리 구조
 
