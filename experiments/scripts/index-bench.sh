@@ -39,7 +39,7 @@ k6run() { # $1=라벨 $2=ACCOUNT $3=STATUS
     -e ACCOUNT="$2" -e STATUS="$3" -e DURATION=10s /scripts/account-orders.js >/dev/null 2>&1 || true
   docker run --rm -i --network "$NET" -v "$PWD/load-test:/scripts" "$K6" run --quiet \
     -e ACCOUNT="$2" -e STATUS="$3" -e DURATION="$DURATION" /scripts/account-orders.js > "$out" 2>&1 || true
-  local reqs p dur
+  local reqs dur
   reqs=$(grep -m1 'http_reqs' "$out" | awk '{print $3}')
   dur=$(grep -m1 'http_req_duration' "$out" | grep -oE 'p\(50\)=[^ ]+|p\(95\)=[^ ]+' | tr '\n' ' ')
   echo "$reqs $dur"
