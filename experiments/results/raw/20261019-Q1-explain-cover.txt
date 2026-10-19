@@ -1,0 +1,36 @@
+### cover: CREATE INDEX idx_bench ON orders (account_id, created_at, status, symbol, side, price, quantity, filled_qty, updated_at)
+-- 인덱스 크기 (bytes)
+index_name	stat_value * @@innodb_page_size
+PRIMARY	131760128
+idx_bench	104775680
+idx_orders_status_id	36241408
+
+-- SELECT * FROM orders WHERE account_id = 1 AND created_at >= UTC_TIMESTAMP(3) - INTERVAL 30 DAY AND created_at < UTC_TIMESTAMP(3) ORDER BY created_at DESC, id DESC LIMIT 20
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	orders	NULL	range	idx_bench	idx_bench	15	NULL	7196	100.00	Using where; Using index; Using filesort
+*************************** 1. row ***************************
+EXPLAIN: -> Limit: 20 row(s)  (cost=1597 rows=20) (actual time=3.23..3.23 rows=20 loops=1)
+    -> Sort: orders.created_at DESC, orders.id DESC, limit input to 20 row(s) per chunk  (cost=1597 rows=7196) (actual time=3.23..3.23 rows=20 loops=1)
+        -> Filter: ((orders.account_id = 1) and (orders.created_at >= <cache>((utc_timestamp(3) - interval 30 day))) and (orders.created_at < <cache>(utc_timestamp(3))))  (cost=1597 rows=7196) (actual time=0.371..2.26 rows=3861 loops=1)
+            -> Covering index range scan on orders using idx_bench over (account_id = 1 AND '2026-09-19 11:29:11.460' <= created_at < '2026-10-19 11:29:11.460')  (cost=1597 rows=7196) (actual time=0.364..1.78 rows=3861 loops=1)
+
+
+-- SELECT * FROM orders WHERE account_id = 1 AND status = 'CANCELED' AND created_at >= UTC_TIMESTAMP(3) - INTERVAL 30 DAY AND created_at < UTC_TIMESTAMP(3) ORDER BY created_at DESC, id DESC LIMIT 20
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	orders	NULL	range	idx_orders_status_id,idx_bench	idx_bench	81	NULL	7196	41.82	Using where; Using index; Using filesort
+*************************** 1. row ***************************
+EXPLAIN: -> Limit: 20 row(s)  (cost=1597 rows=20) (actual time=1.49..1.5 rows=20 loops=1)
+    -> Sort: orders.created_at DESC, orders.id DESC, limit input to 20 row(s) per chunk  (cost=1597 rows=7196) (actual time=1.49..1.49 rows=20 loops=1)
+        -> Filter: ((orders.`status` = 'CANCELED') and (orders.account_id = 1) and (orders.created_at >= <cache>((utc_timestamp(3) - interval 30 day))) and (orders.created_at < <cache>(utc_timestamp(3))))  (cost=1597 rows=7196) (actual time=0.179..1.33 rows=940 loops=1)
+            -> Covering index range scan on orders using idx_bench over (account_id = 1 AND '2026-09-19 11:29:11.695' <= created_at <= '2026-10-19 11:29:11.695' AND 'CANCELED' <= status)  (cost=1597 rows=7196) (actual time=0.17..1.06 rows=3861 loops=1)
+
+
+-- SELECT * FROM orders WHERE account_id = 5000 AND created_at >= UTC_TIMESTAMP(3) - INTERVAL 30 DAY AND created_at < UTC_TIMESTAMP(3) ORDER BY created_at DESC, id DESC LIMIT 20
+id	select_type	table	partitions	type	possible_keys	key	key_len	ref	rows	filtered	Extra
+1	SIMPLE	orders	NULL	range	idx_bench	idx_bench	15	NULL	29	100.00	Using where; Using index; Using filesort
+*************************** 1. row ***************************
+EXPLAIN: -> Limit: 20 row(s)  (cost=7.42 rows=20) (actual time=0.0487..0.0506 rows=20 loops=1)
+    -> Sort: orders.created_at DESC, orders.id DESC, limit input to 20 row(s) per chunk  (cost=7.42 rows=29) (actual time=0.0481..0.0493 rows=20 loops=1)
+        -> Filter: ((orders.account_id = 5000) and (orders.created_at >= <cache>((utc_timestamp(3) - interval 30 day))) and (orders.created_at < <cache>(utc_timestamp(3))))  (cost=7.42 rows=29) (actual time=0.0251..0.034 rows=29 loops=1)
+            -> Covering index range scan on orders using idx_bench over (account_id = 5000 AND '2026-09-19 11:29:11.984' <= created_at < '2026-10-19 11:29:11.984')  (cost=7.42 rows=29) (actual time=0.0212..0.0278 rows=29 loops=1)
+

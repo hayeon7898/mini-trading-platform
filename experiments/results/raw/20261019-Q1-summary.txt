@@ -1,0 +1,15 @@
+none   | heavy  9.433548/s p(50)=5.13s p(95)=6.83s 
+none   | random 9.013867/s p(50)=5.51s p(95)=6.93s 
+none   | status 6.925648/s p(50)=7.28s p(95)=9.05s 
+a      | heavy  32.941442/s p(50)=1.41s p(95)=2.24s 
+a      | random 1516.838424/s p(50)=27.76ms p(95)=74.75ms 
+a      | status 31.519669/s p(50)=1.41s p(95)=3.02s 
+ac     | heavy  1201.196311/s p(50)=34.79ms p(95)=96.49ms 
+ac     | random 2044.23078/s p(50)=19.88ms p(95)=55.31ms 
+ac     | status 1285.668325/s p(50)=33.02ms p(95)=88.45ms 
+asc    | heavy  169.939308/s p(50)=253.59ms p(95)=635.57ms 
+asc    | random 1680.77255/s p(50)=24.53ms p(95)=67.91ms 
+asc    | status 1701.669969/s p(50)=24.34ms p(95)=67.89ms 
+cover  | heavy  791.595939/s p(50)=56.12ms p(95)=123.23ms 
+cover  | random 1974.27868/s p(50)=21.46ms p(95)=54.29ms 
+cover  | status 1000.68653/s p(50)=44.97ms p(95)=96.27ms 
