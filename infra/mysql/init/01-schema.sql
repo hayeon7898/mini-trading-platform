@@ -42,3 +42,7 @@ CREATE TABLE executions (
 -- 체결 시뮬레이터의 대상 조회용 (WHERE status IN (...) ORDER BY status, id ... SKIP LOCKED).
 -- account_id를 포함하지 않으므로 05 스펙(계좌별 조회)의 "개선 전" 기준선에는 영향 없음.
 CREATE INDEX idx_orders_status_id ON orders (status, id);
+
+-- 계좌별 주문 내역 조회 (05 스펙, Q1 실험).
+-- 실제 순서는 (account_id, created_at, id)라 ORDER BY created_at DESC, id DESC를 역방향 스캔으로 처리.
+CREATE INDEX idx_orders_account_created ON orders (account_id, created_at);
