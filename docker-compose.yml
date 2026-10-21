@@ -55,6 +55,32 @@ services:
       - "host.docker.internal:host-gateway"
     mem_limit: 512m
   # ---------------------------------------------------------------
+  # kafka-exporter: 컨슈머 그룹 lag, 파티션 오프셋, ISR·URP → Prometheus
+  #   http://localhost:9308/metrics
+  # ---------------------------------------------------------------
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.9.0
+    container_name: mts-kafka-exporter
+    command:
+      # 브로커 3대를 모두 지정: 장애 실험에서 한 대가 죽어도 메타데이터 조회 유지
+      - --kafka.server=kafka-1:9092
+      - --kafka.server=kafka-2:9092
+      - --kafka.server=kafka-3:9092
+      # Kafka 4.x는 구버전 프로토콜이 제거됨 → 클라이언트(sarama) 프로토콜 버전을 명시
+      - --kafka.version=3.6.0
+    ports:
+      - "9308:9308"
+    depends_on:
+      kafka-1:
+        condition: service_healthy
+      kafka-2:
+        condition: service_healthy
+      kafka-3:
+        condition: service_healthy
+    # 기동 시 브로커 접속 실패하면 종료되므로 자동 재시작 (장애 실험 중 대비)
+    restart: unless-stopped
+    mem_limit: 128m
+  # ---------------------------------------------------------------
   # MySQL: 주문·체결 원장 DB (CDC 원천)
   # ---------------------------------------------------------------
   mysql:

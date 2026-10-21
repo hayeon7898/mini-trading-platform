@@ -1,4 +1,4 @@
-# order-server는 호스트(WSL)에서 bootRun으로 실행되므로 host.docker.internal로 수집한다.
+# order-server는 compose 밖에서 같은 Docker 네트워크의 컨테이너(mts-order-server)로 실행한다.
 global:
   scrape_interval: 5s
   evaluation_interval: 5s
@@ -8,3 +8,9 @@ scrape_configs:
     metrics_path: /actuator/prometheus
     static_configs:
       - targets: ["mts-order-server:8080"]
+
+  # 컨슈머 그룹 lag, 파티션 오프셋, ISR·URP (04 실험)
+  - job_name: kafka-exporter
+    scrape_timeout: 5s
+    static_configs:
+      - targets: ["kafka-exporter:9308"]
