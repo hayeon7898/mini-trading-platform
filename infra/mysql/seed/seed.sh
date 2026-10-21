@@ -91,14 +91,19 @@ SQL
 done
 
 # ---------------------------------------------------------------- 체결, 통계, 정리
+# 주문 삽입 직후의 최대 id를 시드 범위의 끝으로 잡는다.
+# 대량 INSERT ... SELECT는 AUTO_INCREMENT를 묶음으로 미리 잡고 남은 id를 버려, 범위가 START_ID + ORDERS보다 뒤까지 퍼진다.
+END_ID=$(echo "SELECT MAX(id) FROM orders;" | sql)
+
 sql <<SQL
 INSERT INTO executions (order_id, account_id, symbol, side, price, quantity, executed_at)
 SELECT id, account_id, symbol, side, price, quantity, updated_at
-FROM orders WHERE id > ${START_ID} AND status = 'FILLED';
+FROM orders WHERE id BETWEEN $(( START_ID + 1 )) AND ${END_ID} AND status = 'FILLED';
 ANALYZE TABLE orders, executions;
 DROP TABLE seed_nums;
 SQL
 echo "[seed] 체결 완료 (${SECONDS}s)"
+echo "[seed] 시드 주문 id 범위: $(( START_ID + 1 )) ~ ${END_ID} (reconcile-executions.sh의 SEED_ORDER_MIN/MAX)"
 
 echo "[seed] 결과"
 sql <<'SQL'
@@ -109,3 +114,4 @@ UNION ALL SELECT 'executions', COUNT(*) FROM executions
 UNION ALL SELECT 'account 1 orders', COUNT(*) FROM orders WHERE account_id = 1;
 SQL
 echo "[seed] 총 소요 ${SECONDS}s"
+
