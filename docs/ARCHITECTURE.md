@@ -85,6 +85,7 @@ flowchart TD
 | ClickHouse | (기록) |-|
 | k6 | `grafana/k6:2.3.0` | 부하 생성 (constant-arrival-rate) |
 | Prometheus | `prom/prometheus:v3.15.0` | order-server 지표 수집 |
+| kafka-exporter | `danielqsj/kafka-exporter:v1.9.0` | 최신 릴리스. lag·ISR·URP 제공으로 JMX exporter 생략 |
 
 ## 7. 디렉토리 구조
 
@@ -111,6 +112,19 @@ mini-trading-platform/
 ## 8. 로컬 리소스
 
 Kafka 3대 + Connect + ClickHouse는 메모리를 많이 쓴다. Docker에 **최소 8GB** 할당을 권장하고, 각 컨테이너 JVM 힙을 명시적으로 제한한다 (예: Kafka `-Xmx512m`, Connect `-Xmx1g`).
+
+| 컨테이너 | 메모리 상한 | 호스트 접속 |
+|---|---|---|
+| mts-mysql | 1GB | `localhost:3307` |
+| mts-kafka-1~3 | 1GB × 3 | `localhost:19092`, `29092`, `39092` |
+| mts-connect | 1.5GB | `http://localhost:8083` |
+| mts-clickhouse | 2GB | `http://localhost:8123`, `localhost:9000` |
+| mts-prometheus | 512MB | `http://localhost:9090` |
+| mts-kafka-exporter | 128MB | `http://localhost:9308/metrics` |
+| mts-order-server (compose 밖) | 1GB | `http://localhost:8080` |
+| **합계** | **약 9.1GB** | |
+
+상한 합계는 권장치 8GB를 넘지만 상한일 뿐이고, 유휴 실측은 약 2.9GiB(10/15, order-server·Prometheus 제외)다.
 
 ## 9. 단계별 계획
 
