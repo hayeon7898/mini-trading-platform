@@ -1,0 +1,71 @@
+-- 체결 실시간 적재 (docs/specs/03-clickhouse-sink.md)
+--
+--   mts.trading.executions (Kafka) → kafka_executions_queue (Kafka 엔진)
+--                                  → executions_mv (Materialized View)
+--                                  → executions (ReplacingMergeTree)
+--
+-- 메시지 형식 (#11, #12에서 확인): price는 문자열 "71000.0000", executed_at·__source_ts_ms는 epoch millis(UTC)
+-- 시각 컬럼은 DateTime64(3, 'UTC')로 시간대를 명시한다 (#11의 9시간 시각 버그 교훈).
+-- Kafka 엔진은 MV 삽입이 끝난 뒤 오프셋을 커밋하므로 at-least-once. 중복은 ReplacingMergeTree(ORDER BY id)가 머지 때 제거하고,
+-- 머지 전 정확한 집계가 필요하면 FINAL을 쓴다.
+
+CREATE DATABASE IF NOT EXISTS mts;
+
+-- 1) Kafka 소비용 큐. 직접 SELECT하면 메시지를 소비해 버리므로 조회하지 않는다.
+CREATE TABLE IF NOT EXISTS mts.kafka_executions_queue
+(
+    id             UInt64,
+    order_id       UInt64,
+    account_id     UInt64,
+    symbol         String,
+    side           String,
+    price          String,
+    quantity       UInt32,
+    executed_at    Int64,
+    __op           String,
+    __source_ts_ms Int64
+)
+ENGINE = Kafka
+SETTINGS kafka_broker_list = 'kafka-1:9092,kafka-2:9092,kafka-3:9092',
+         kafka_topic_list = 'mts.trading.executions',
+         kafka_group_name = 'clickhouse-executions',
+         kafka_format = 'JSONEachRow',
+         kafka_num_consumers = 3,
+         -- 백필 중 컨슈머 3개가 큰 묶음을 동시에 들고 메모리 한도(약 1.8GiB)를 넘어 같은 위치를 재시도하며 멈춤.
+         -- 묶음을 줄여 메모리 사용을 낮춘다.
+         kafka_max_block_size = 10000,
+         kafka_poll_max_batch_size = 10000;
+
+-- 2) 최종 저장 테이블. 같은 id가 여러 번 들어오면 머지 때 하나만 남는다.
+CREATE TABLE IF NOT EXISTS mts.executions
+(
+    id          UInt64,
+    order_id    UInt64,
+    account_id  UInt64,
+    symbol      LowCardinality(String),
+    side        LowCardinality(String),
+    price       Decimal(18, 4),
+    quantity    UInt32,
+    executed_at DateTime64(3, 'UTC'),
+    source_ts   DateTime64(3, 'UTC'),
+    ingested_at DateTime64(3, 'UTC') DEFAULT now64(3)
+)
+ENGINE = ReplacingMergeTree
+PARTITION BY toYYYYMMDD(executed_at)
+ORDER BY id;
+
+-- 3) 변환 MV. 큐에 들어온 메시지를 타입 변환해 executions에 넣는다.
+CREATE MATERIALIZED VIEW IF NOT EXISTS mts.executions_mv TO mts.executions AS
+SELECT
+    id,
+    order_id,
+    account_id,
+    symbol,
+    side,
+    toDecimal64(price, 4)                          AS price,
+    quantity,
+    fromUnixTimestamp64Milli(executed_at, 'UTC')    AS executed_at,
+    fromUnixTimestamp64Milli(__source_ts_ms, 'UTC') AS source_ts
+FROM mts.kafka_executions_queue;
+
+
