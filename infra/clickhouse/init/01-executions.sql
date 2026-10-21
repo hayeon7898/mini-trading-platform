@@ -42,8 +42,8 @@ SETTINGS kafka_broker_list = 'kafka-1:9092,kafka-2:9092,kafka-3:9092',
          -- 묶음을 줄여 메모리 사용을 낮춘다.
          kafka_max_block_size = 10000,
          kafka_poll_max_batch_size = 10000,
-         -- 모은 메시지를 넣는 최대 간격. 기본값(7500)을 명시해 두고 #30 실험에서 바꿔 가며 측정한다.
-         kafka_flush_interval_ms = 7500;
+         -- 모은 메시지를 넣는 최대 간격. 기본 7500 → 1000 (#30: p95 7.6초 → 1.7초, 500보다 삽입 횟수 절반)
+         kafka_flush_interval_ms = 1000;
 
 -- 2) 최종 저장 테이블. 같은 id가 여러 번 들어오면 머지 때 하나만 남는다.
 CREATE TABLE IF NOT EXISTS mts.executions
