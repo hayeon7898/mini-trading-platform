@@ -1,0 +1,36 @@
+time="2026-10-21T09:42:23Z" level=warning msg="Insufficient VUs, reached 1000 active VUs and cannot initialize more" executor=constant-arrival-rate scenario=orders
+
+
+  █ THRESHOLDS 
+
+    http_req_failed
+    ✓ 'rate<0.01' rate=0.00%
+
+
+  █ TOTAL RESULTS 
+
+    checks_total.......: 25177   200.697408/s
+    checks_succeeded...: 100.00% 25177 out of 25177
+    checks_failed......: 0.00%   0 out of 25177
+
+    ✓ status is 201
+
+    HTTP
+    http_req_duration..............: avg=4.72s p(50)=4.6s p(95)=7.21s p(99)=8.38s max=11.8s 
+      { expected_response:true }...: avg=4.72s p(50)=4.6s p(95)=7.21s p(99)=8.38s max=11.8s 
+    http_req_failed................: 0.00%  0 out of 25177
+    http_reqs......................: 25177  200.697408/s
+
+    EXECUTION
+    dropped_iterations.............: 34823  277.590096/s
+    iteration_duration.............: avg=4.72s p(50)=4.6s p(95)=7.21s p(99)=8.38s max=11.81s
+    iterations.....................: 25177  200.697408/s
+    vus............................: 114    min=114        max=1000
+    vus_max........................: 1000   min=155        max=1000
+
+    NETWORK
+    data_received..................: 8.9 MB 71 kB/s
+    data_sent......................: 5.3 MB 43 kB/s
+
+
+
