@@ -1,0 +1,13 @@
+-- 머지 전 행 수 / 고유 id 수
+executions	2586951	2586951
+orders	704831	610359
+
+query           | median_ms  | result
+exec_final      | 40         | 2586951,30822156 
+exec_argmax     | 609        | 2586951,30822156 
+exec_limit_by   | 169        | 2586951,30822156 
+exec_uniq       | 190        | 2586951 
+exec_raw        | 23         | 2586951,30822156 
+orders_final    | 45         | CANCELED,3,0 FILLED,610356,30822156 
+orders_argmax   | 229        | CANCELED,3,0 FILLED,610356,30822156 
+orders_raw      | 15         | ACCEPTED,3085,0 CANCELED,3,0 FILLED,610356,30822156 PARTIAL,91387,2388961 
