@@ -14,6 +14,7 @@ read -r -a FLUSHES <<< "${FLUSH_LIST:-7500 1000 500}"
 RATE="${RATE:-500}"
 DURATION="${DURATION:-2m}"
 INIT=infra/clickhouse/init/01-executions.sql
+PARTITIONS="${PARTITIONS:-6}"
 DATE=$(date +%Y%m%d)
 OUT="${OUT:-experiments/results/${DATE}-E0-e2e-latency}/raw"
 NET=$(docker inspect mts-mysql -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')
@@ -36,6 +37,19 @@ wait_idle() {
   done
 }
 
+# 큐를 다시 만들면 컨슈머 그룹 리밸런스가 끝날 때까지(관측상 30~45초) 파티션을 배정받지 못해 적재가 멈춘다.
+# 배정 전에 부하를 시작하면 그 구간의 체결이 20~30초씩 밀려 꼬리 지연이 측정 절차 때문에 부풀려진다.
+wait_assigned() {
+  local assigned elapsed=0
+  while true; do
+    assigned=$(ch_q -q "SELECT sum(length(assignments.partition_id)) FROM system.kafka_consumers
+                        WHERE database = 'mts' AND table = 'kafka_executions_queue'")
+    [[ "$assigned" == "$PARTITIONS" ]] && { echo "  파티션 ${assigned}개 배정 완료 (${elapsed}s)"; return; }
+    (( elapsed >= 180 )) && { echo "  배정 대기 시간 초과 (배정 ${assigned}/${PARTITIONS})"; exit 1; }
+    sleep 5; elapsed=$(( elapsed + 5 ))
+  done
+}
+
 recreate_queue() { # $1=flush ms
   ch_q --multiquery <<< "DROP VIEW IF EXISTS executions_mv; DROP TABLE IF EXISTS kafka_executions_queue;"
   sed "s/kafka_flush_interval_ms = [0-9]*/kafka_flush_interval_ms = $1/" "$INIT" | ch_q --multiquery
@@ -50,6 +64,7 @@ printf '%-6s | %-8s | %-24s | %-24s | %s\n' "flush" "rows" "total p50/p95/p99 (m
 for f in "${FLUSHES[@]}"; do
   echo "== kafka_flush_interval_ms = $f"
   recreate_queue "$f"
+  wait_assigned
   wait_idle
   sleep 15
 
