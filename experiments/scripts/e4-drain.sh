@@ -109,22 +109,27 @@ FROM e4.queue;
 "
 log "mv created t0=$T0"
 
-echo "elapsed_ms,rows" >"$OUT/drain.csv"
+# rows: 대상 테이블에 보이는 행. 삽입은 약 100만 행 단위로 묶여(min_insert_block_size_rows) 계단식으로 보임
+# read: 컨슈머가 Kafka에서 읽은 메시지 수 합계. 실시간으로 늘어나므로 소비 시작·진행은 이 값으로 판단
+echo "elapsed_ms,read,rows" >"$OUT/drain.csv"
 FIRST=""
 END=""
 ASSIGN_SAVED=""
 while :; do
-  rows="$(ch "SELECT count() FROM e4.target")"
+  line="$(ch "SELECT (SELECT sum(num_messages_read) FROM system.kafka_consumers WHERE database = 'e4'),
+                     (SELECT count() FROM e4.target) FORMAT CSV")"
+  read_msgs="${line%%,*}"
+  rows="${line##*,}"
   t="$(now_ms)"
-  echo "$((t - T0)),$rows" >>"$OUT/drain.csv"
-  if [ -z "$FIRST" ] && [ "$rows" -gt 0 ]; then
+  echo "$((t - T0)),$read_msgs,$rows" >>"$OUT/drain.csv"
+  if [ -z "$FIRST" ] && [ "${read_msgs:-0}" -gt 0 ]; then
     FIRST="$t"
-    log "first rows after $((FIRST - T0))ms"
+    log "first read after $((FIRST - T0))ms"
   fi
   if [ -z "$ASSIGN_SAVED" ] && [ $((t - T0)) -gt 10000 ]; then
-    ch "SELECT consumer_id, assignments.partition_id, num_messages_read
+    ch "SELECT consumer_id, assignments.partition_id, num_messages_read, num_rebalance_assignments
         FROM system.kafka_consumers WHERE database = 'e4' FORMAT TSVWithNames" \
-      >"$OUT/kafka-consumers.tsv" 2>&1 || true
+      >"$OUT/kafka-consumers-10s.tsv" 2>&1 || true
     ASSIGN_SAVED=1
   fi
   if [ "$rows" -ge "$N" ]; then
@@ -147,9 +152,12 @@ while :; do
 done
 
 kill "$STATS_PID" 2>/dev/null || true
+ch "SELECT consumer_id, assignments.partition_id, num_messages_read, num_rebalance_assignments
+    FROM system.kafka_consumers WHERE database = 'e4' FORMAT TSVWithNames" \
+  >"$OUT/kafka-consumers-end.tsv" 2>&1 || true
 ch "SELECT count() AS active_parts, sum(rows) AS rows FROM system.parts
     WHERE database = 'e4' AND table = 'target' AND active FORMAT TSVWithNames" >"$OUT/parts.tsv"
-# 폴링(1초 간격)보다 정확한 ClickHouse 쪽 적재 구간: 첫 행과 마지막 행의 ingested_at 차이
+# 교차 확인용: ingested_at(DEFAULT now64)은 삽입 쿼리 시작 시각이라 행이 실제로 보인 시각보다 이를 수 있음
 CH_SPAN="$(ch "SELECT dateDiff('millisecond', min(ingested_at), max(ingested_at)) FROM e4.target")"
 ch "DROP TABLE e4.mv; DROP TABLE e4.queue; DROP TABLE e4.target;"
 
@@ -164,6 +172,7 @@ ch "DROP TABLE e4.mv; DROP TABLE e4.queue; DROP TABLE e4.target;"
   echo "first_ms=${FIRST:-}"
   echo "end_ms=${END:-}"
   if [ -n "$FIRST" ] && [ -n "$END" ]; then
+    # startup: MV 생성 → 첫 메시지 읽음 (그룹 참여·파티션 배정), drain: 첫 메시지 읽음 → 전 행 적재 완료
     echo "startup_ms=$((FIRST - T0))"
     echo "drain_ms=$((END - FIRST))"
     echo "throughput_rows_per_s=$((N * 1000 / (END - FIRST)))"
