@@ -66,6 +66,16 @@ final class SeqProducer {
         a.optional("request-timeout-ms").ifPresent(v -> p.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, v));
         a.optional("delivery-timeout-ms").ifPresent(v -> p.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, v));
         a.optional("linger-ms").ifPresent(v -> p.put(ProducerConfig.LINGER_MS_CONFIG, v));
+        // 그 밖의 프로듀서 설정: --producer-config k=v,k=v (실험 변수용)
+        a.optional("producer-config").ifPresent(s -> {
+            for (String kv : s.split(",")) {
+                int i = kv.indexOf('=');
+                if (i <= 0) {
+                    throw new IllegalArgumentException("--producer-config 형식: k=v,k=v");
+                }
+                p.put(kv.substring(0, i).trim(), kv.substring(i + 1).trim());
+            }
+        });
 
         long total = (long) rate * duration;
         if (total > Integer.MAX_VALUE - 1) {
