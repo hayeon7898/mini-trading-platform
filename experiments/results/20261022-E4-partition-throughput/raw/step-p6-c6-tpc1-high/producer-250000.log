@@ -1,0 +1,15 @@
+[14:02:01.561] start topic=e4.step-p6-c6-tpc1-high acks=all idempotence=true rate=250000/s duration=60s total=15000000 format=execution key=id
+[14:02:06.878] progress sent=1249970 acked=1227849 failed=0
+[14:02:11.878] progress sent=2499906 acked=2490242 failed=0
+[14:02:16.878] progress sent=3749899 acked=3746949 failed=0
+[14:02:21.878] progress sent=4999622 acked=4996325 failed=0
+[14:02:26.878] progress sent=6249523 acked=6245815 failed=0
+[14:02:31.875] progress sent=7499883 acked=7488716 failed=0
+[14:02:36.875] progress sent=8749876 acked=8747336 failed=0
+[14:02:41.895] progress sent=9995081 acked=9985064 failed=0
+[14:02:46.875] progress sent=11249982 acked=11242082 failed=0
+[14:02:51.876] progress sent=12500065 acked=12496511 failed=0
+[14:02:56.876] progress sent=13750070 acked=13746613 failed=0
+[14:03:01.872] send loop done, flushing
+[14:03:01.874] progress sent=15000000 acked=14995734 failed=0
+[14:03:03.210] done attempted=15000000 acked=15000000 failed=0 max_ack_gap=1581ms (14:02:57.342 ~ 14:02:58.923 UTC) errors=none
