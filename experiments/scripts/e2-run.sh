@@ -151,7 +151,7 @@ docker logs --since "$((START_MS / 1000))" mts-connect >"$OUT/connect.log" 2>&1 
 # --- 7. 정합성 대조 ---------------------------------------------------------------
 bash experiments/scripts/reconcile-executions.sh >"$OUT/reconcile-executions.txt" 2>&1 || true
 bash experiments/scripts/reconcile-orders.sh >"$OUT/reconcile-orders.txt" 2>&1 || true
-tail -5 "$OUT/reconcile-executions.txt" "$OUT/reconcile-orders.txt"
+tail -n 5 "$OUT/reconcile-executions.txt" "$OUT/reconcile-orders.txt"
 
 {
   echo "mode=$MODE"

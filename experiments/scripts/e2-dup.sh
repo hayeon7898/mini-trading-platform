@@ -104,5 +104,18 @@ FROM (
 GROUP BY topic ORDER BY topic
 FORMAT PrettyCompactMonoBlock" | tee -a "$OUT/dup-summary.txt"
 
+# 발행 재개 시각: 재기동 이후 첫 메시지의 Kafka 타임스탬프 (e2-run.sh의 CLI 폴링보다 정확)
+RESTART_MS="$(grep -h '^restart_ms=' "$OUT/meta.txt" 2>/dev/null | cut -d= -f2)"
+FAIL_MS="$(grep -h '^fail_ms=' "$OUT/meta.txt" 2>/dev/null | cut -d= -f2)"
+if [ -n "$RESTART_MS" ] && [ -n "$FAIL_MS" ]; then
+  ch "
+  SELECT toUnixTimestamp64Milli(min(ts))                    AS resume_ms,
+         resume_ms - ${RESTART_MS}                          AS restart_to_resume_ms,
+         resume_ms - ${FAIL_MS}                             AS fail_to_resume_ms
+  FROM e2.msgs FINAL
+  WHERE ts > fromUnixTimestamp64Milli(toInt64(${RESTART_MS}), 'UTC')
+  FORMAT Vertical" | tee -a "$OUT/dup-summary.txt"
+fi
+
 ch "DROP TABLE e2.msgs;"
 log "done → $OUT/dup-summary.txt, dup-groups.tsv"
