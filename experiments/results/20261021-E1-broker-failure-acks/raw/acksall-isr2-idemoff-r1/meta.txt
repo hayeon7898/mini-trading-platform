@@ -1,0 +1,16 @@
+combo=acksall-isr2-idemoff
+run=1
+topic=e1.acksall-isr2-idemoff.r1
+acks=all
+min_isr=2
+idempotence=false
+rate=5000
+duration=60
+kill_at=20
+active_controller=1
+leader=3
+new_leader=1
+start_ms=1792654753452
+kill_ms=1792654773456
+leader_detected_ms=1792654783977
+end_ms=1792654814788

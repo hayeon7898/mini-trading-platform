@@ -1,0 +1,16 @@
+combo=acksall-isr2-idemon
+run=1
+topic=e1.acksall-isr2-idemon.r1
+acks=all
+min_isr=2
+idempotence=true
+rate=5000
+duration=60
+kill_at=20
+active_controller=1
+leader=3
+new_leader=1
+start_ms=1792654855459
+kill_ms=1792654875471
+leader_detected_ms=1792654887003
+end_ms=1792654916717

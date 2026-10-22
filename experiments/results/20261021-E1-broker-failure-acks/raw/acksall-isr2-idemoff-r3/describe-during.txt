@@ -1,0 +1,2 @@
+Topic: e1.acksall-isr2-idemoff.r3	TopicId: UHGu5TUwScSDVLfi9UB77g	PartitionCount: 1	ReplicationFactor: 3	Configs: min.insync.replicas=2,unclean.leader.election.enable=false
+	Topic: e1.acksall-isr2-idemoff.r3	Partition: 0	Leader: 1	Replicas: 3,1,2	Isr: 1,2	Elr: 	LastKnownElr: 
