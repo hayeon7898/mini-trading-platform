@@ -32,7 +32,7 @@ public final class Main {
             usage:
               produce --topic T [--acks all] [--idempotence false] [--rate 5000] [--duration 60] [--out /out]
                       [--bootstrap host:port,...] [--request-timeout-ms N] [--delivery-timeout-ms N] [--linger-ms N]
-                      [--producer-config k=v,k=v]
+                      [--producer-config k=v,k=v] [--format seq|execution] [--key none|id] [--record-each true|false]
               verify  --topic T [--out /out] [--bootstrap host:port,...] [--timeout-sec 120]
             """);
     }
