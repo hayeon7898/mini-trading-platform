@@ -1,0 +1,6 @@
+기준 주문 id: 2243364 (적재 대기 10초)
+status     | MySQL (건수, 체결수량) | ClickHouse FINAL
+CANCELED   | 3 / 0                    | 3 / 0
+FILLED     | 932661 / 47075043        | 932661 / 47075043
+ClickHouse 머지 전 행: 1016095 (FINAL 932664, 같은 주문의 이전 상태 83431행)
+결과: 일치
