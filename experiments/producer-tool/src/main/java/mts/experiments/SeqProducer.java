@@ -60,6 +60,8 @@ final class SeqProducer {
         String keyMode = a.get("key", "execution".equals(format) ? "id" : "none");
         // false면 레코드별 acked.csv / failed.csv를 쓰지 않음 (대량 적재 시 파일 I/O가 병목이 되지 않게)
         boolean recordEach = Boolean.parseBoolean(a.get("record-each", "true"));
+        // execution 형식의 id = seq + id-offset. 여러 번 나눠 보낼 때 id가 겹치지 않게 (ReplacingMergeTree가 같은 id를 합침)
+        long idOffset = Long.parseLong(a.get("id-offset", "0"));
         if (!format.equals("seq") && !format.equals("execution")) {
             throw new IllegalArgumentException("--format seq|execution");
         }
@@ -114,9 +116,10 @@ final class SeqProducer {
                 final int s = (int) seq;
                 rec.sent();
                 try {
-                    String key = "id".equals(keyMode) ? "{\"id\":" + seq + "}" : null;
+                    long id = seq + idOffset;
+                    String key = "id".equals(keyMode) ? "{\"id\":" + id + "}" : null;
                     String value = "execution".equals(format)
-                        ? executionJson(seq, System.currentTimeMillis())
+                        ? executionJson(id, System.currentTimeMillis())
                         : Long.toString(seq);
                     producer.send(new ProducerRecord<>(topic, key, value), (md, ex) -> {
                         if (ex == null) {

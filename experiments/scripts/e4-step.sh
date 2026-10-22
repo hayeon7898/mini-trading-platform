@@ -6,6 +6,7 @@
 #
 # 사용법: bash experiments/scripts/e4-step.sh <partitions> <consumers> <thread_per_consumer:0|1>
 # 환경변수(선택): RATES="50000 100000 150000 200000" STEP_SEC=60
+#                 SUFFIX=high  같은 조합을 다른 단계로 다시 돌릴 때 폴더·토픽 이름 구분
 set -euo pipefail
 
 if [ "$#" -ne 3 ]; then
@@ -20,7 +21,8 @@ STEP_SEC="${STEP_SEC:-60}"
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 RESULT_DIR="$ROOT/experiments/results/20261022-E4-partition-throughput"
-TAG="step-p${P}-c${C}-tpc${TPC}"
+SUFFIX="${SUFFIX:-}"
+TAG="step-p${P}-c${C}-tpc${TPC}${SUFFIX:+-$SUFFIX}"
 TOPIC="e4.${TAG}"
 GROUP="e4-${TAG}-$(date +%s)"
 OUT="$RESULT_DIR/raw/${TAG}"
@@ -106,24 +108,29 @@ sleep 15
 START_MS="$(now_ms)"
 echo "rate,start_ms,end_ms" >"$OUT/steps.csv"
 TOTAL=0
+ID_OFFSET=0
 for rate in $RATES; do
   s="$(now_ms)"
   log "step rate=$rate start"
   mkdir -p "$OUT/producer-$rate"
   docker run --rm --network "$NET" -v "$TOOL:/app:ro" -v "$OUT/producer-$rate:/out" eclipse-temurin:21-jre \
     /app/bin/producer-tool produce --topic "$TOPIC" --format execution --key id --record-each false \
-    --acks all --idempotence true --rate "$rate" --duration "$STEP_SEC" \
+    --acks all --idempotence true --rate "$rate" --duration "$STEP_SEC" --id-offset "$ID_OFFSET" \
     --producer-config linger.ms=20,batch.size=262144,compression.type=lz4 \
     >"$OUT/producer-$rate.log" 2>&1
   e="$(now_ms)"
   echo "$rate,$s,$e" >>"$OUT/steps.csv"
-  TOTAL=$((TOTAL + rate * STEP_SEC))
-  log "step rate=$rate end ($((e - s))ms) $(grep -o 'done.*' "$OUT/producer-$rate.log" | head -1)"
+  # 목표(rate × STEP_SEC)가 아니라 실제 ack된 건수로 누적: 프로듀서가 못 따라가거나 실패하면 둘이 다름
+  acked="$(grep -h '^acked=' "$OUT/producer-$rate/summary.txt" | cut -d= -f2)"
+  TOTAL=$((TOTAL + ${acked:-0}))
+  # 단계마다 id 구간을 이어 붙여 대상 테이블(ReplacingMergeTree)에서 합쳐지지 않게 함
+  ID_OFFSET=$((ID_OFFSET + rate * STEP_SEC))
+  log "step rate=$rate end ($((e - s))ms) $(grep -o 'done attempted.*' "$OUT/producer-$rate.log" | head -1)"
 done
 
-# 남은 백로그 소진 대기 (최대 10분)
+# 남은 백로그 소진 대기 (최대 5분)
 END_MS=""
-for _ in $(seq 1 600); do
+for _ in $(seq 1 300); do
   rows="$(ch "SELECT count() FROM e4.target")"
   if [ "$rows" -ge "$TOTAL" ]; then
     END_MS="$(now_ms)"
@@ -132,7 +139,7 @@ for _ in $(seq 1 600); do
   sleep 1
 done
 [ -z "$END_MS" ] && END_MS="$(now_ms)" && log "TIMEOUT: rows=$rows / $TOTAL"
-log "drained total=$TOTAL after_last_step_ms=$((END_MS - $(tail -1 "$OUT/steps.csv" | cut -d, -f3)))"
+log "drained acked_total=$TOTAL after_last_step_ms=$((END_MS - $(tail -1 "$OUT/steps.csv" | cut -d, -f3)))"
 kill "$STATS_PID" 2>/dev/null || true
 
 # 지표 (kafka-exporter, 5초 해상도)
