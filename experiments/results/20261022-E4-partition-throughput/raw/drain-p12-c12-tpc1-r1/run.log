@@ -1,0 +1,4 @@
+[12:55:31.587] tag=p12-c12-tpc1-r1 topic=e4.p12 group=e4-p12-c12-tpc1-r1-1792673729 rows=3000000 consumers=12 thread_per_consumer=1
+[12:55:32.256] mv created t0=1792673731925
+[12:55:34.128] first read after 2194ms
+[12:55:50.494] done → /mnt/c/Dev/mini-trading-platform/experiments/results/20261022-E4-partition-throughput/raw/drain-p12-c12-tpc1-r1

@@ -1,0 +1,4 @@
+[13:00:11.143] tag=p6-c6-tpc0-r3 topic=e4.p6 group=e4-p6-c6-tpc0-r3-1792674009 rows=3000000 consumers=6 thread_per_consumer=0
+[13:00:11.526] mv created t0=1792674011334
+[13:00:14.503] first read after 3149ms
+[13:00:29.217] done → /mnt/c/Dev/mini-trading-platform/experiments/results/20261022-E4-partition-throughput/raw/drain-p6-c6-tpc0-r3

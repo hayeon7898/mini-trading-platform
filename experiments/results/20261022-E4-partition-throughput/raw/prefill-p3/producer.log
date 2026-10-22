@@ -1,0 +1,9 @@
+[12:37:20.581] start topic=e4.p3 acks=all idempotence=true rate=100000/s duration=30s total=3000000 format=execution key=id
+[12:37:25.628] progress sent=500696 acked=498855 failed=0
+[12:37:30.616] progress sent=1000059 acked=997946 failed=0
+[12:37:35.616] progress sent=1500037 acked=1498629 failed=0
+[12:37:40.614] progress sent=1999855 acked=1998569 failed=0
+[12:37:45.614] progress sent=2499850 acked=2498254 failed=0
+[12:37:50.614] progress sent=2999838 acked=2998136 failed=0
+[12:37:50.615] send loop done, flushing
+[12:37:51.069] done attempted=3000000 acked=3000000 failed=0 max_ack_gap=213ms (12:37:32.120 ~ 12:37:32.333 UTC) errors=none
