@@ -21,7 +21,8 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 RESULT_DIR="$ROOT/experiments/results/20261022-E4-partition-throughput"
 TOPIC="e4.p${P}"
 TAG="p${P}-c${C}-tpc${TPC}-r${RUN}"
-GROUP="e4-${TAG}"
+# 같은 태그로 다시 돌려도 처음부터 읽도록 그룹 이름에 시각을 붙임 (그룹 오프셋은 결과 폴더를 지워도 Kafka에 남음)
+GROUP="e4-${TAG}-$(date +%s)"
 OUT="$RESULT_DIR/raw/drain-${TAG}"
 
 if [ -e "$OUT" ]; then
@@ -109,8 +110,8 @@ FROM e4.queue;
 "
 log "mv created t0=$T0"
 
-# rows: 대상 테이블에 보이는 행. 삽입은 약 100만 행 단위로 묶여(min_insert_block_size_rows) 계단식으로 보임
-# read: 컨슈머가 Kafka에서 읽은 메시지 수 합계. 실시간으로 늘어나므로 소비 시작·진행은 이 값으로 판단
+# read: 컨슈머가 Kafka에서 읽은 메시지 수 합계 (소비 시작 판단 기준)
+# rows: 대상 테이블에 보이는 행 (완료 판단 기준)
 echo "elapsed_ms,read,rows" >"$OUT/drain.csv"
 FIRST=""
 END=""
@@ -157,7 +158,8 @@ ch "SELECT consumer_id, assignments.partition_id, num_messages_read, num_rebalan
   >"$OUT/kafka-consumers-end.tsv" 2>&1 || true
 ch "SELECT count() AS active_parts, sum(rows) AS rows FROM system.parts
     WHERE database = 'e4' AND table = 'target' AND active FORMAT TSVWithNames" >"$OUT/parts.tsv"
-# 교차 확인용: ingested_at(DEFAULT now64)은 삽입 쿼리 시작 시각이라 행이 실제로 보인 시각보다 이를 수 있음
+# 참고용: ingested_at(DEFAULT now64)은 쿼리 안에서 상수라 삽입 쿼리 시작 시각이 기록됨.
+# 쿼리가 파티션 배정을 기다리는 동안 시작되면 그 대기 시간까지 포함되므로 처리량 계산에는 쓰지 않는다
 CH_SPAN="$(ch "SELECT dateDiff('millisecond', min(ingested_at), max(ingested_at)) FROM e4.target")"
 ch "DROP TABLE e4.mv; DROP TABLE e4.queue; DROP TABLE e4.target;"
 
@@ -178,8 +180,5 @@ ch "DROP TABLE e4.mv; DROP TABLE e4.queue; DROP TABLE e4.target;"
     echo "throughput_rows_per_s=$((N * 1000 / (END - FIRST)))"
   fi
   echo "ch_ingest_span_ms=$CH_SPAN"
-  if [ "${CH_SPAN:-0}" -gt 0 ]; then
-    echo "ch_throughput_rows_per_s=$((N * 1000 / CH_SPAN))"
-  fi
 } | tee "$OUT/summary.txt"
 log "done → $OUT"
