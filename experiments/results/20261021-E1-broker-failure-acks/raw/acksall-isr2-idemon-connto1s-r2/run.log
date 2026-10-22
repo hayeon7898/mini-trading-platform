@@ -1,0 +1,8 @@
+[08:27:36.129] combo=acksall-isr2-idemon-connto1s run=2 topic=e1.acksall-isr2-idemon-connto1s.r2 rate=5000 duration=60 kill_at=20
+[08:27:36.148] active_controller=1 leader=3 followers=1 2
+[08:27:44.723] producer_config=socket.connection.setup.timeout.ms=1000,socket.connection.setup.timeout.max.ms=1000
+[08:28:05.171] killed mts-kafka-3 at kill_ms=1792657684739
+[08:28:13.086] new_leader=1 detected_after_ms=8343
+[08:28:46.285] restarted mts-kafka-3
+[08:29:00.094] isr_restored_after_restart_ms=14205
+[08:29:09.613] done → /mnt/c/Dev/mini-trading-platform/experiments/results/20261021-E1-broker-failure-acks/raw/acksall-isr2-idemon-connto1s-r2

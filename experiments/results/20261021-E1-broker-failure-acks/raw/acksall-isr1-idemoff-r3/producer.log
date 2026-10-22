@@ -1,0 +1,26 @@
+[07:51:06.635] start topic=e1.acksall-isr1-idemoff.r3 acks=all idempotence=false rate=5000/s duration=60s total=300000
+[07:51:11.662] progress sent=24999 acked=24971 failed=0
+[07:51:16.662] progress sent=49998 acked=49755 failed=0
+[07:51:21.659] progress sent=74998 acked=74979 failed=0
+07:51:25.918 WARN org.apache.kafka.clients.producer.internals.Sender - [Producer clientId=e1-producer] Got error produce response with correlation id 2892 on topic-partition e1.acksall-isr1-idemoff.r3-0, retrying (2147483646 attempts left). Error: NETWORK_EXCEPTION. Error Message: Disconnected from node 3
+07:51:25.928 WARN org.apache.kafka.clients.producer.internals.Sender - [Producer clientId=e1-producer] Received invalid metadata error in produce request on partition e1.acksall-isr1-idemoff.r3-0 due to org.apache.kafka.common.errors.NetworkException: Disconnected from node 3 Going to request metadata update now
+07:51:25.929 WARN org.apache.kafka.clients.producer.internals.Sender - [Producer clientId=e1-producer] Got error produce response with correlation id 2893 on topic-partition e1.acksall-isr1-idemoff.r3-0, retrying (2147483646 attempts left). Error: NETWORK_EXCEPTION. Error Message: Disconnected from node 3
+07:51:25.929 WARN org.apache.kafka.clients.producer.internals.Sender - [Producer clientId=e1-producer] Received invalid metadata error in produce request on partition e1.acksall-isr1-idemoff.r3-0 due to org.apache.kafka.common.errors.NetworkException: Disconnected from node 3 Going to request metadata update now
+07:51:25.929 WARN org.apache.kafka.clients.producer.internals.Sender - [Producer clientId=e1-producer] Got error produce response with correlation id 2894 on topic-partition e1.acksall-isr1-idemoff.r3-0, retrying (2147483646 attempts left). Error: NETWORK_EXCEPTION. Error Message: Disconnected from node 3
+07:51:25.929 WARN org.apache.kafka.clients.producer.internals.Sender - [Producer clientId=e1-producer] Received invalid metadata error in produce request on partition e1.acksall-isr1-idemoff.r3-0 due to org.apache.kafka.common.errors.NetworkException: Disconnected from node 3 Going to request metadata update now
+07:51:25.929 WARN org.apache.kafka.clients.producer.internals.Sender - [Producer clientId=e1-producer] Got error produce response with correlation id 2895 on topic-partition e1.acksall-isr1-idemoff.r3-0, retrying (2147483646 attempts left). Error: NETWORK_EXCEPTION. Error Message: Disconnected from node 3
+07:51:25.929 WARN org.apache.kafka.clients.producer.internals.Sender - [Producer clientId=e1-producer] Received invalid metadata error in produce request on partition e1.acksall-isr1-idemoff.r3-0 due to org.apache.kafka.common.errors.NetworkException: Disconnected from node 3 Going to request metadata update now
+07:51:25.929 WARN org.apache.kafka.clients.producer.internals.Sender - [Producer clientId=e1-producer] Got error produce response with correlation id 2896 on topic-partition e1.acksall-isr1-idemoff.r3-0, retrying (2147483646 attempts left). Error: NETWORK_EXCEPTION. Error Message: Disconnected from node 3
+07:51:25.929 WARN org.apache.kafka.clients.producer.internals.Sender - [Producer clientId=e1-producer] Received invalid metadata error in produce request on partition e1.acksall-isr1-idemoff.r3-0 due to org.apache.kafka.common.errors.NetworkException: Disconnected from node 3 Going to request metadata update now
+07:51:26.014 WARN org.apache.kafka.clients.NetworkClient - [Producer clientId=e1-producer] Connection to node 3 (kafka-3/172.21.0.4:9092) could not be established. Node may not be available.
+[07:51:26.659] progress sent=100000 acked=95927 failed=0
+[07:51:31.659] progress sent=124997 acked=95927 failed=0
+[07:51:36.660] progress sent=150002 acked=95927 failed=0
+[07:51:41.659] progress sent=174999 acked=95927 failed=0
+[07:51:46.659] progress sent=199996 acked=199963 failed=0
+[07:51:51.655] progress sent=224998 acked=224974 failed=0
+[07:51:56.655] progress sent=249998 acked=249966 failed=0
+[07:52:01.655] progress sent=274997 acked=274971 failed=0
+[07:52:06.655] progress sent=299998 acked=299983 failed=0
+[07:52:06.656] send loop done, flushing
+[07:52:06.776] done attempted=300000 acked=300000 failed=0 max_ack_gap=19848ms (07:51:25.846 ~ 07:51:45.694 UTC) errors=none

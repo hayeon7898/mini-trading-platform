@@ -1,0 +1,14 @@
+acked=300000
+attempted=300000
+distinct_seq=300000
+duplicated_seqs=30
+duplicates=30
+failed=0
+failed_present=0
+lost=0
+lost_offset_range=-
+out_of_order=110
+topic=e1.acksall-isr1-idemoff.r3
+topic_end_offset_sum=300030
+topic_records=300030
+unknown_values=0
