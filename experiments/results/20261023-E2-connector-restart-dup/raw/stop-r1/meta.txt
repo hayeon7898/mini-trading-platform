@@ -1,0 +1,16 @@
+mode=stop
+run=1
+tag=
+rate=150
+load_sec=180
+fail_at=90
+down_sec=15
+start_ms=1792690255880
+fail_ms=1792690351486
+stopped_ms=1792690354932
+restart_ms=1792690374701
+running_ms=1792690448518
+resume_ms=1792690451469
+end_ms=1792690534855
+end_offsets_before_fail=8506390
+end_offsets_at_restart=8508030

@@ -1,0 +1,9 @@
+[16:44:52.605] mode=kill run=0 rate=300 load_sec=180 fail_at=90 down_sec=15
+[16:44:52.638] start offsets: 7350090 (orders+executions)
+[16:46:27.807] kill mts-connect fail_ms=1792687587043 (stopped after 761ms) end_offsets=7370638
+[16:46:51.770] start mts-connect restart_ms=1792687611001 end_offsets=7370717
+[16:48:19.523] connector RUNNING after restart +88518ms
+[16:48:30.136] publishing resumed after restart +99131ms
+[16:48:30.155] load done
+[16:52:39.993] end offsets: 7607178 (+257088 in window)
+[16:52:58.941] offset commits in window: 5

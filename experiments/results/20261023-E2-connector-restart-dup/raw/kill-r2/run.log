@@ -1,0 +1,10 @@
+[17:17:11.077] mode=kill run=2 rate=150 load_sec=180 fail_at=90 down_sec=15
+[17:17:11.140] start offsets: 7868279 (orders+executions)
+[17:18:50.395] kill mts-connect fail_ms=1792689529363 (stopped after 1023ms) end_offsets=7939494
+[17:19:10.143] start mts-connect restart_ms=1792689549094 end_offsets=7939762
+[17:20:28.501] connector RUNNING after restart +79401ms
+[17:20:34.225] publishing resumed after restart +85126ms
+[17:20:34.255] load done
+[17:23:22.235] end offsets: 8138738 (+270459 in window)
+[17:23:41.923] offset commits in window: 5
+[17:24:09.793] done → /mnt/c/Dev/mini-trading-platform/experiments/results/20261023-E2-connector-restart-dup/raw/kill-r2  (다음: bash experiments/scripts/e2-dup.sh /mnt/c/Dev/mini-trading-platform/experiments/results/20261023-E2-connector-restart-dup/raw/kill-r2)

@@ -1,0 +1,4 @@
+CreateTime:1792689866278	["mts-trading-connector",{"server":"mts"}]	{"ts_sec":1792689865,"file":"mysql-bin.000006","pos":172403573,"gtids":"ebcf57e4-c87e-11f1-ada7-6255a0933311:1-928062","row":1,"server_id":1,"event":2}
+CreateTime:1792689926288	["mts-trading-connector",{"server":"mts"}]	{"ts_sec":1792689925,"file":"mysql-bin.000006","pos":184433048,"gtids":"ebcf57e4-c87e-11f1-ada7-6255a0933311:1-937372","row":1,"server_id":1,"event":2}
+CreateTime:1792690103626	["mts-trading-connector",{"server":"mts"}]	{"ts_sec":1792690102,"file":"mysql-bin.000006","pos":213505819,"gtids":"ebcf57e4-c87e-11f1-ada7-6255a0933311:1-954145","row":1,"server_id":1,"event":4}
+CreateTime:1792690163622	["mts-trading-connector",{"server":"mts"}]	{"ts_sec":1792690162,"file":"mysql-bin.000006","pos":226153328,"gtids":"ebcf57e4-c87e-11f1-ada7-6255a0933311:1-954740","row":1,"server_id":1,"event":200}
