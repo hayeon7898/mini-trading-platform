@@ -1,0 +1,7 @@
+기준 체결 id: 4404199 (적재 대기 10초)
+source                 | rows       | sum(quantity)
+MySQL                  | 3617779    | 43094749
+ClickHouse FINAL       | 3617779    | 43094749
+ClickHouse (머지 전) | 3617779    | 43094749
+머지 전 중복 행: 0
+결과: 일치

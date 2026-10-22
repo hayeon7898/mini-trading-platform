@@ -171,6 +171,7 @@ services:
   # ---------------------------------------------------------------
   connect:
     image: quay.io/debezium/connect:3.6.2.Final   # Debezium 이미지는 Docker Hub가 아닌 quay.io에서 배포
+    entrypoint: ["sh", "-c", "mkdir -p /tmp/connect-plugins && cp -r /kafka/connect/debezium-connector-mysql /tmp/connect-plugins/ && exec /docker-entrypoint.sh start"]
     container_name: mts-connect
     hostname: connect
     ports:
@@ -203,6 +204,11 @@ services:
       CONNECT_CONFIG_PROVIDERS_ENV_CLASS: org.apache.kafka.common.config.provider.EnvVarConfigProvider
       DEBEZIUM_PASSWORD: ${DEBEZIUM_PASSWORD}
       HEAP_OPTS: -Xms512m -Xmx1g
+      # E2 조치: 오프셋 저장 주기 60초 → 5초 (강제 종료 시 재발행 범위 축소)
+      # 이 이미지는 CONNECT_ 접두사가 아닌 이 변수로 지정해야 반영됨
+      OFFSET_FLUSH_INTERVAL_MS: 5000
+      # E2 조치: entrypoint가 만든 MySQL 커넥터 전용 상위 폴더 (재기동 시 전체 플러그인 스캔 약 75초 제거)
+      CONNECT_PLUGIN_PATH: /tmp/connect-plugins
     mem_limit: 1536m
     healthcheck:
       test: ["CMD-SHELL", "curl -fs http://localhost:8083/connector-plugins > /dev/null"]
