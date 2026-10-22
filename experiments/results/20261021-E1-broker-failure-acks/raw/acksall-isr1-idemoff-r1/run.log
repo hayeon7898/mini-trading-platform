@@ -1,0 +1,7 @@
+[07:37:21.981] combo=acksall-isr1-idemoff run=1 topic=e1.acksall-isr1-idemoff.r1 rate=5000 duration=60 kill_at=20
+[07:37:21.990] active_controller=1 leader=3 followers=1 2
+[07:37:47.540] killed mts-kafka-3 at kill_ms=1792654667193
+[07:38:00.637] new_leader=1 detected_after_ms=13441
+[07:38:28.698] restarted mts-kafka-3
+[07:38:50.751] isr_restored_after_restart_ms=22526
+[07:38:58.694] done → /mnt/c/Dev/mini-trading-platform/experiments/results/20261021-E1-broker-failure-acks/raw/acksall-isr1-idemoff-r1

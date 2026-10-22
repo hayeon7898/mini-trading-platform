@@ -1,0 +1,24 @@
+plugins {
+    id 'application'
+}
+
+group = 'mts.experiments'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // 브로커(apache/kafka:4.3.1)와 같은 버전
+    implementation 'org.apache.kafka:kafka-clients:4.3.1'
+    runtimeOnly 'org.slf4j:slf4j-simple:2.0.17'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+    options.encoding = 'UTF-8'
+}
+
+application {
+    mainClass = 'mts.experiments.Main'
+}

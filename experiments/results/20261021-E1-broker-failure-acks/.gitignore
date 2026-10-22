@@ -1,0 +1,4 @@
+raw/*/acked.csv
+raw/*/failed.csv
+# 최상위 *.log 규칙의 예외: 실행·프로듀서·브로커 로그는 결과 근거
+!raw/*/*.log

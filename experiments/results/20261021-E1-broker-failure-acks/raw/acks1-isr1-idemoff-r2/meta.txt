@@ -1,0 +1,16 @@
+combo=acks1-isr1-idemoff
+run=2
+topic=e1.acks1-isr1-idemoff.r2
+acks=1
+min_isr=1
+idempotence=false
+rate=5000
+duration=60
+kill_at=20
+active_controller=1
+leader=3
+new_leader=1
+start_ms=1792654957690
+kill_ms=1792654977704
+leader_detected_ms=1792654988589
+end_ms=1792655018886

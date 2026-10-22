@@ -1,0 +1,14 @@
+acked=300000
+attempted=300000
+distinct_seq=300000
+duplicated_seqs=0
+duplicates=0
+failed=0
+failed_present=0
+lost=0
+lost_offset_range=-
+out_of_order=0
+topic=e1.acksall-isr2-idemon-connto1s.r3
+topic_end_offset_sum=300000
+topic_records=300000
+unknown_values=0

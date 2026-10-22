@@ -1,0 +1,14 @@
+acked=1500000
+attempted=1500000
+distinct_seq=1499709
+duplicated_seqs=0
+duplicates=0
+failed=0
+failed_present=0
+lost=291
+lost_offset_range=713470~713760
+out_of_order=1117
+topic=e1.acks1-isr1-idemoff-rate50k.r2
+topic_end_offset_sum=1499709
+topic_records=1499709
+unknown_values=0
