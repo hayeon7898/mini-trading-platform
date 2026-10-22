@@ -1,0 +1,13 @@
+tag=p3-c3-tpc0-r2
+partitions=3
+consumers=3
+thread_per_consumer=0
+run=2
+rows=3000000
+t0_ms=1792673775376
+first_ms=1792673777251
+end_ms=1792673796353
+startup_ms=1875
+drain_ms=19102
+throughput_rows_per_s=157051
+ch_ingest_span_ms=19323

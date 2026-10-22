@@ -1,0 +1,8 @@
+tag=step-p6-c6-tpc0-high
+topic=e4.step-p6-c6-tpc0-high
+group=e4-step-p6-c6-tpc0-high-1792677385
+rates=200000 250000 300000
+step_sec=60
+total=45000000
+start_ms=1792677403292
+end_ms=1792677623287

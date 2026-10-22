@@ -1,0 +1,12 @@
+[13:07:30.091] tag=step-p6-c6-tpc0 topic=e4.step-p6-c6-tpc0 group=e4-step-p6-c6-tpc0-1792674448 rates=[50000 100000 150000 200000] step_sec=60
+[13:07:45.312] step rate=50000 start
+[13:08:46.843] step rate=50000 end (61510ms) done, flushing
+[13:08:46.849] step rate=100000 start
+[13:09:48.483] step rate=100000 end (61621ms) done, flushing
+[13:09:48.494] step rate=150000 start
+[13:10:50.411] step rate=150000 end (61892ms) done, flushing
+[13:10:50.435] step rate=200000 start
+[13:11:53.121] step rate=200000 end (62662ms) done, flushing
+[13:23:49.583] TIMEOUT: rows=21000000 / 30000000
+[13:23:49.594] drained total=30000000 after_last_step_ms=716488
+[13:24:05.868] done → /mnt/c/Dev/mini-trading-platform/experiments/results/20261022-E4-partition-throughput/raw/step-p6-c6-tpc0

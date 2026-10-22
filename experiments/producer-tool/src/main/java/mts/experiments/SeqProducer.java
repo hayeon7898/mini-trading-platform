@@ -54,6 +54,17 @@ final class SeqProducer {
         int duration = a.getInt("duration", 60);
         Path out = Path.of(a.get("out", "/out"));
         Files.createDirectories(out);
+        // seq: 값 = 일련번호 문자열 (E1) / execution: mts.trading.executions와 같은 JSON (E4)
+        String format = a.get("format", "seq");
+        // none: 키 없음 (E1) / id: Debezium과 같은 {"id":N} 키로 파티션 분산 (E4)
+        String keyMode = a.get("key", "execution".equals(format) ? "id" : "none");
+        // false면 레코드별 acked.csv / failed.csv를 쓰지 않음 (대량 적재 시 파일 I/O가 병목이 되지 않게)
+        boolean recordEach = Boolean.parseBoolean(a.get("record-each", "true"));
+        // execution 형식의 id = seq + id-offset. 여러 번 나눠 보낼 때 id가 겹치지 않게 (ReplacingMergeTree가 같은 id를 합침)
+        long idOffset = Long.parseLong(a.get("id-offset", "0"));
+        if (!format.equals("seq") && !format.equals("execution")) {
+            throw new IllegalArgumentException("--format seq|execution");
+        }
 
         Properties p = new Properties();
         p.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
@@ -82,9 +93,9 @@ final class SeqProducer {
             throw new IllegalArgumentException("rate × duration이 너무 큼: " + total);
         }
 
-        Recorder rec = new Recorder(out, (int) total, duration + TIMELINE_SLACK_SEC);
-        log("start topic=%s acks=%s idempotence=%s rate=%d/s duration=%ds total=%d",
-            topic, acks, idempotence, rate, duration, total);
+        Recorder rec = new Recorder(out, (int) total, duration + TIMELINE_SLACK_SEC, recordEach);
+        log("start topic=%s acks=%s idempotence=%s rate=%d/s duration=%ds total=%d format=%s key=%s",
+            topic, acks, idempotence, rate, duration, total, format, keyMode);
 
         ScheduledExecutorService progress = Executors.newSingleThreadScheduledExecutor(r -> {
             Thread t = new Thread(r, "progress");
@@ -105,7 +116,12 @@ final class SeqProducer {
                 final int s = (int) seq;
                 rec.sent();
                 try {
-                    producer.send(new ProducerRecord<>(topic, Long.toString(seq)), (md, ex) -> {
+                    long id = seq + idOffset;
+                    String key = "id".equals(keyMode) ? "{\"id\":" + id + "}" : null;
+                    String value = "execution".equals(format)
+                        ? executionJson(id, System.currentTimeMillis())
+                        : Long.toString(seq);
+                    producer.send(new ProducerRecord<>(topic, key, value), (md, ex) -> {
                         if (ex == null) {
                             rec.acked(s, md.offset());
                         } else {
@@ -124,6 +140,33 @@ final class SeqProducer {
         }
 
         rec.finish(topic, acks, idempotence, rate, duration, total, p);
+    }
+
+    private static final String[] SYMBOLS = {
+        "005930", "000660", "035420", "035720", "051910", "005380", "068270", "105560", "055550", "000270"
+    };
+
+    /** 실제 체결 CDC 메시지(ExtractNewRecordState + __op, __source_ts_ms)와 같은 필드·타입의 JSON. */
+    static String executionJson(long id, long nowMs) {
+        long priceX10000 = 500_000_000L + (id * 7919L) % 500_000_000L;   // 50,000.0000 ~ 99,999.9999
+        long frac = priceX10000 % 10000;
+        StringBuilder sb = new StringBuilder(200);
+        sb.append("{\"id\":").append(id)
+            .append(",\"order_id\":").append((id + 2) / 3)
+            .append(",\"account_id\":").append(id % 1000 + 1)
+            .append(",\"symbol\":\"").append(SYMBOLS[(int) (id % SYMBOLS.length)]).append('"')
+            .append(",\"side\":\"").append((id & 1) == 0 ? "BUY" : "SELL").append('"')
+            .append(",\"price\":\"").append(priceX10000 / 10000).append('.');
+        if (frac < 1000) sb.append('0');
+        if (frac < 100) sb.append('0');
+        if (frac < 10) sb.append('0');
+        sb.append(frac).append('"')
+            .append(",\"quantity\":").append(id % 10 + 1)
+            .append(",\"executed_at\":").append(nowMs)
+            .append(",\"__op\":\"c\"")
+            .append(",\"__source_ts_ms\":").append(nowMs)
+            .append('}');
+        return sb.toString();
     }
 
     static void log(String fmt, Object... args) {
@@ -145,8 +188,11 @@ final class SeqProducer {
         private final AtomicLong failed = new AtomicLong();
         private final Map<String, LongAdder> errors = new ConcurrentHashMap<>();
 
-        Recorder(Path out, int total, int seconds) throws IOException {
+        private final boolean recordEach;
+
+        Recorder(Path out, int total, int seconds, boolean recordEach) throws IOException {
             this.out = out;
+            this.recordEach = recordEach;
             this.ackedOut = Files.newBufferedWriter(out.resolve("acked.csv"));
             this.failedOut = Files.newBufferedWriter(out.resolve("failed.csv"));
             this.ackedOut.write("seq,offset,ack_ms\n");
@@ -172,7 +218,9 @@ final class SeqProducer {
             ackMs[seq] = now;
             acked.incrementAndGet();
             ackedPerSec.incrementAndGet(sec(now));
-            write(ackedOut, seq + "," + offset + "," + now + "\n");
+            if (recordEach) {
+                write(ackedOut, seq + "," + offset + "," + now + "\n");
+            }
         }
 
         synchronized void failed(int seq, Exception e) {
@@ -184,7 +232,9 @@ final class SeqProducer {
                 log("first error %s (seq=%d): %s", type, seq, e.getMessage());
             }
             errors.get(type).increment();
-            write(failedOut, seq + "," + type + "," + now + "\n");
+            if (recordEach) {
+                write(failedOut, seq + "," + type + "," + now + "\n");
+            }
         }
 
         void printProgress() {

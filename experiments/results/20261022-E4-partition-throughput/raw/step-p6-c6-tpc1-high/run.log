@@ -1,0 +1,9 @@
+[14:00:41.848] tag=step-p6-c6-tpc1-high topic=e4.step-p6-c6-tpc1-high group=e4-step-p6-c6-tpc1-high-1792677639 rates=[200000 250000 300000] step_sec=60
+[14:00:57.119] step rate=200000 start
+[14:02:00.602] step rate=200000 end (63406ms) done attempted=12000000 acked=12000000 failed=0 max_ack_gap=320ms (14:01:25.179 ~ 14:01:25.499 UTC) errors=none
+[14:02:00.616] step rate=250000 start
+[14:03:06.351] step rate=250000 end (65708ms) done attempted=15000000 acked=15000000 failed=0 max_ack_gap=1581ms (14:02:57.342 ~ 14:02:58.923 UTC) errors=none
+[14:03:06.360] step rate=300000 start
+[14:04:13.948] step rate=300000 end (67380ms) done attempted=18000000 acked=18000000 failed=0 max_ack_gap=1248ms (14:03:20.256 ~ 14:03:21.504 UTC) errors=none
+[14:04:24.806] drained acked_total=45000000 after_last_step_ms=10997
+[14:04:41.506] done → /mnt/c/Dev/mini-trading-platform/experiments/results/20261022-E4-partition-throughput/raw/step-p6-c6-tpc1-high

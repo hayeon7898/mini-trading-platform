@@ -1,0 +1,7 @@
+consumer_id	assignments.partition_id	num_messages_read	num_rebalance_assignments
+ClickHouse-clickhouse-e4-queue-0-b7c0f52a-0d7b-4b70-b62c-a3c50cfecfae	[0]	500922	1
+ClickHouse-clickhouse-e4-queue-1-bbfbad06-b105-4175-a47f-3d105a587907	[1]	499700	1
+ClickHouse-clickhouse-e4-queue-2-118b6827-12fd-4ac7-ba6b-141e905a8a23	[2]	498980	1
+ClickHouse-clickhouse-e4-queue-3-3cc55c7a-f1c2-4f47-860a-c6abcee91a24	[3]	520452	2
+ClickHouse-clickhouse-e4-queue-4-79c37889-7c90-4912-b262-8486d20a227d	[4]	490051	1
+ClickHouse-clickhouse-e4-queue-5-595b79af-6850-49f7-a97c-dd7533df3b21	[5]	499895	1

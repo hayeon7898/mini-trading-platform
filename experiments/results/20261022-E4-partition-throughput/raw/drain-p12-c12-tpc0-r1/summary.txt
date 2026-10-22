@@ -1,0 +1,13 @@
+tag=p12-c12-tpc0-r1
+partitions=12
+consumers=12
+thread_per_consumer=0
+run=1
+rows=3000000
+t0_ms=1792673586462
+first_ms=1792673588387
+end_ms=1792673641552
+startup_ms=1925
+drain_ms=53165
+throughput_rows_per_s=56428
+ch_ingest_span_ms=23749

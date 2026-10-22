@@ -1,0 +1,13 @@
+tag=p6-c6-tpc1-r1
+partitions=6
+consumers=6
+thread_per_consumer=1
+run=1
+rows=3000000
+t0_ms=1792673710754
+first_ms=1792673712744
+end_ms=1792673726814
+startup_ms=1990
+drain_ms=14070
+throughput_rows_per_s=213219
+ch_ingest_span_ms=14618
