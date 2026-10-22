@@ -33,7 +33,6 @@ if [ -e "$OUT" ]; then
   echo "이미 결과가 있음: $OUT" >&2
   exit 1
 fi
-mkdir -p "$OUT"
 cd "$ROOT"
 
 now_ms() { date +%s%3N; }
@@ -58,6 +57,8 @@ if [ "$URP" != "0" ]; then
   echo "URP $URP 개 — 복구 후 실행" >&2
   exit 1
 fi
+# 사전 조건을 통과한 뒤에 결과 폴더 생성 (실패 시 빈 폴더가 남지 않게)
+mkdir -p "$OUT"
 
 # --- 1. 실험 구간 시작 오프셋 -------------------------------------------------------
 end_offsets >"$OUT/offsets-start.txt"
