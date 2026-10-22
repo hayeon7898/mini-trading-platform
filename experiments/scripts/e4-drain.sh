@@ -131,6 +131,14 @@ while :; do
     END="$t"
     break
   fi
+  # 1분이 지나도 0건이면 메시지 형식 오류 등으로 같은 위치를 재시도 중일 가능성 → 원인 기록 후 중단
+  if [ -z "$FIRST" ] && [ $((t - T0)) -gt 60000 ]; then
+    ch "SELECT consumer_id, num_messages_read, exceptions.text
+        FROM system.kafka_consumers WHERE database = 'e4' FORMAT Vertical" \
+      >"$OUT/kafka-exceptions.txt" 2>&1 || true
+    log "NO_ROWS: 60초 동안 적재 0건 — kafka-exceptions.txt 확인"
+    break
+  fi
   if [ $((t - T0)) -gt $((TIMEOUT_SEC * 1000)) ]; then
     log "TIMEOUT: ${TIMEOUT_SEC}초 안에 다 소비하지 못함 rows=$rows"
     break

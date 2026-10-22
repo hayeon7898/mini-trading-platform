@@ -38,6 +38,12 @@ docker run --rm --network "$NET" -v "$TOOL:/app:ro" -v "$OUT:/out" eclipse-temur
   --acks all --idempotence true --rate "$RATE" --duration "$DURATION" \
   --producer-config linger.ms=20,batch.size=262144,compression.type=lz4 2>&1 | tee "$OUT/producer.log"
 
+# 이전 빌드(체결 JSON 형식 이전)로 실행되면 인자가 무시되고 일련번호 문자열이 들어감 → 즉시 실패시킴
+if ! grep -q 'format=execution key=id' "$OUT/producer.log"; then
+  echo "producer-tool이 체결 형식을 지원하지 않는 이전 빌드임. 재빌드 후 토픽을 지우고 다시 실행" >&2
+  exit 1
+fi
+
 docker exec mts-kafka-1 /opt/kafka/bin/kafka-get-offsets.sh --bootstrap-server kafka-1:9092 \
   --topic "$TOPIC" | tee "$OUT/offsets.txt"
 TOTAL="$(awk -F: '{s += $3} END {print s}' "$OUT/offsets.txt")"
