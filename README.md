@@ -31,7 +31,7 @@ MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어
 
 ---
 
-## 아키텍처
+## 🐟 아키텍처
 
 ```mermaid
 flowchart LR
