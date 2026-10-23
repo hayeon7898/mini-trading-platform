@@ -104,7 +104,7 @@ flowchart LR
  
 | ID | 실험 | 핵심 결과 | 기록 |
 |---|---|---|---|
-| L1 | 주문 API 처리량 한계와 커넥션 풀 | 병목은 HikariCP 풀(10). 30으로 늘려 500 TPS에서 처리량 217 → **497/s**, p50 4.16s → **86ms** | [보기](experiments/results/20261019-L1-order-api-capacity.md) |
+| L1 | 주문 API 처리량 한계와 커넥션 풀 | 병목은 HikariCP 풀(10). 30으로 늘려 500 TPS에서 처리량 217 → **497/s**, p50 4.16s → **86ms** | [보기](experiments/results/20261019-L1-order-api-capacity/20261019-L1-order-api-capacity.md) |
  
 ### 조회 쿼리 개선 · [05-query-optimization](docs/specs/05-query-optimization.md)
  
