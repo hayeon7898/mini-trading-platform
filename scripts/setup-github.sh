@@ -6,8 +6,8 @@ set -euo pipefail
 label() { gh label create "$1" --color "$2" --description "$3" --force; }
 
 # 단계
-label phase-1 "0E8A16" "1단계: 토스 Realtime 지원 (~10/25)"
-label phase-2 "C5DEF5" "2단계: BE/Infra 에피소드"
+label phase-1 "0E8A16" "핵심 파이프라인"
+label phase-2 "C5DEF5" "확장 과제"
 
 # 스펙
 for n in 01 02 03 04 05 06; do
@@ -24,9 +24,9 @@ label chore "EDEDED" "빌드·설정"
 
 # 마일스톤 (이미 있으면 건너뜀)
 repo=$(gh repo view --json nameWithOwner -q .nameWithOwner)
-title="1단계 (~10/25)"
+title="M1-Setup"
 if ! gh api "repos/$repo/milestones?state=all" -q '.[].title' | grep -qx "$title"; then
-  gh api "repos/$repo/milestones" -f title="$title" -f due_on="2026-10-25T14:59:59Z" >/dev/null
+  gh api "repos/$repo/milestones" -f title="$title" >/dev/null
   echo "마일스톤 생성: $title"
 fi
 
