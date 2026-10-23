@@ -1,4 +1,4 @@
-# 미니 증권 주문·체결 플랫폼
+# Mini Trading Platform
 
 MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어지는 실시간 파이프라인을 만들고,
 **브로커 장애·재시작·부하 상황을 직접 재현해 정합성과 성능을 수치로 검증**하는 프로젝트입니다.
