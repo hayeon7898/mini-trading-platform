@@ -9,7 +9,7 @@ MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어
 ![Kafka](https://img.shields.io/badge/Kafka-4.3.1_KRaft-231F20?logo=apachekafka&logoColor=white)
 ![Debezium](https://img.shields.io/badge/Debezium-3.6.2-91D443)
 ![ClickHouse](https://img.shields.io/badge/ClickHouse-26.8_LTS-FFCC01?logo=clickhouse&logoColor=black)
-![Grafana](https://img.shields.io/badge/Prometheus_+_Grafana-F46800?logo=grafana&logoColor=white)
+![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?logo=prometheus&logoColor=white)
 ![k6](https://img.shields.io/badge/k6-7D64FF?logo=k6&logoColor=white)
 
 ---
@@ -42,7 +42,8 @@ flowchart LR
     KF --> CH[(ClickHouse<br/>Kafka 엔진 → MV)]
     KF -.확장.-> FL[Flink Job]
     KF -.확장.-> SSE[WebFlux SSE]
-    KF --> PR[Prometheus] --> GF[Grafana]
+    OS -.지표.-> PR[Prometheus]
+    KF -.kafka-exporter.-> PR
 ```
 
 **주문 1건의 흐름**
@@ -68,7 +69,7 @@ flowchart LR
 | CDC | Debezium MySQL (Kafka Connect) | `3.6.2.Final` | binlog 기반, MySQL 8.4 지원 |
 | 이벤트 버스 | Apache Kafka (KRaft, 3 브로커) | `4.3.1` | ZooKeeper 없는 공식 이미지 |
 | 분석 저장소 | ClickHouse | `26.8.8.8` | 26.8 LTS, Kafka 엔진 내장 |
-| 모니터링 | Prometheus, Grafana, kafka-exporter | | 처리량·지연·consumer lag 관측 |
+| 모니터링 | Prometheus, kafka-exporter | | HikariCP 커넥션 대기·서버 응답 시간(L1), 컨슈머 lag(E4) 등 실험 지표 수집 |
 | 부하 테스트 | k6 | | |
 | 확장 | Flink, Spring WebFlux(SSE), Redis | | Phase 2 |
 
@@ -94,12 +95,14 @@ flowchart LR
 ---
 
 ## 🔎 실험 & 결과
+
 **주요 발견**
  
 - `acks=1`에서 리더 장애 시 **ack된 메시지 291건 유실**을 재현했고, `acks=all` + 멱등성으로 15회 모두 유실·중복 0건 (E1)
 - 커넥터 강제 종료로 회당 약 2만 건 중복이 생겨도 MySQL과 ClickHouse `FINAL` 결과가 **7회 모두 일치** (E2)
 - 조회 인덱스 하나로 대형 계좌 p95 **6.83s → 96ms**, 읽는 행 127만 → 20 (Q1)
 - 병목을 수치로 추적: 커넥션 풀(L1) → ClickHouse 적재 간격(E0) → 플러그인 스캔(E2)
+
 ### 주문 API 성능 · [01-order-server](docs/specs/01-order-server.md)
  
 | ID | 실험 | 핵심 결과 | 기록 |
@@ -124,7 +127,7 @@ flowchart LR
 | E2 | Debezium 커넥터 강제 종료와 중복 | kill 시 회당 약 2만 건 재발행, 정합성은 7회 모두 일치. 오프셋 저장 주기·플러그인 경로 조정으로 중복 **−91%**, 복구 82s → **42s** | [보기](experiments/results/20261023-E2-connector-restart-dup/20261023-E2-connector-restart-dup.md) |
 | E4 | 파티션 수와 처리량 한계 | 파티션 3·6·12 모두 21~23만 rows/s로 같음. `kafka_thread_per_consumer=1`로 15.7만 → **23.4만**. 실제 경로 대비 약 100배 여유 | [보기](experiments/results/20261022-E4-partition-throughput/20261022-E4-partition-throughput.md) |
  
-실험 기록은 `experiments/results/YYYYMMDD-<실험ID>.md`에 **가설 → 조건 → 결과 → 해석 → 조치** 순서로 남깁니다.
+실험 기록은 `experiments/results/YYYYMMDD-<실험ID>/` 폴더에 **가설 → 조건 → 결과 → 해석 → 조치** 순서로 남깁니다.
 
 
 
@@ -163,7 +166,7 @@ docker compose up -d --wait   # 전체 스택 기동 (모든 컨테이너 health
 ```
 mini-trading-platform/
 ├── docker-compose.yml
-├── infra/            # mysql, connect, clickhouse, prometheus, grafana 설정
+├── infra/            # mysql, connect, clickhouse, prometheus 설정
 ├── order-server/     # Spring Boot 주문 서버
 ├── load-test/        # k6 스크립트
 ├── scripts/          # 토픽 생성 등 운영 스크립트
