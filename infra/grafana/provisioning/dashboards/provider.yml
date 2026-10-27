@@ -1,0 +1,15 @@
+# Grafana 대시보드 프로비저닝 (#42)
+# mts/ 폴더의 JSON 파일이 대시보드 원본이다.
+apiVersion: 1
+
+providers:
+  - name: mts
+    folder: MTS
+    type: file
+    # 파일이 원본. UI에서 고친 내용은 저장되지 않으므로 Export → JSON 파일 덮어쓰기로 반영한다
+    allowUiUpdates: false
+    disableDeletion: true
+    # 파일 변경을 10초마다 확인 → JSON을 덮어쓰면 재시작 없이 반영
+    updateIntervalSeconds: 10
+    options:
+      path: /etc/grafana/provisioning/dashboards/mts
