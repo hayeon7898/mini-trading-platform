@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 # E3 컨슈머 중단 후 따라잡기 (#43)
 #
-# 500 TPS 부하를 건 상태에서 운영 큐 두 개를 DETACH → STOP분 대기 → ATTACH 하고,
+# 주문 부하(기본 300 TPS)를 건 상태에서 운영 큐 두 개를 DETACH → STOP분 대기 → ATTACH 하고,
 # 부하를 계속 넣으면서 lag가 해소될 때까지 1초 간격으로 기록한다. 끝나면 부하를 멈추고 정합성을 대조한다.
 #
 # 사용법: bash experiments/scripts/e3-run.sh <tpc:0|1> <stop_min> <run>
 #   전제: e3-set-tpc.sh <tpc> 로 큐 설정을 맞춘 상태, 두 컨슈머 그룹 lag가 작을 것
-#   환경변수: RATE(500) WARMUP_SEC(60) STOP_SEC(stop_min*60, 시험 실행용) RESOLVE_LAG(10000) MAX_CATCHUP_SEC(900)
+#         producer-tool 빌드 (cd experiments/producer-tool && ./gradlew installDist) — lag 샘플러로 사용
+#   환경변수: RATE(300) WARMUP_SEC(60) STOP_SEC(stop_min*60, 시험 실행용) RESOLVE_LAG(10000) MAX_CATCHUP_SEC(900)
 #
 # 기록 (raw/<tag>/)
+#   lag.csv     : 1초 간격 lag 원본 (producer-tool lag, Kafka Admin API로 끝 오프셋 - 커밋 오프셋)
 #   samples.csv : 1초 간격 — 시각(ms), 단계, 체결 lag, 주문 lag, ClickHouse MemoryTracking(바이트)
 #   events.log  : 단계 전환 시각
 #   summary.txt : 첫 소비 대기, 해소 시간, lag·메모리 최고치
@@ -20,17 +22,21 @@ if [ "$#" -ne 3 ]; then
   exit 1
 fi
 TPC="$1"; STOP_MIN="$2"; RUN="$3"
-RATE="${RATE:-500}"
+# 500은 시험 실행에서 실제 353/s만 나와(dropped) 회차마다 유입량이 흔들림 → 확실히 소화되는 300으로 고정
+RATE="${RATE:-300}"
 WARMUP_SEC="${WARMUP_SEC:-60}"
 STOP_SEC="${STOP_SEC:-$(( STOP_MIN * 60 ))}"
 RESOLVE_LAG="${RESOLVE_LAG:-10000}"     # 묶음 1개(kafka_max_block_size) 이하면 해소로 본다
 MAX_CATCHUP_SEC="${MAX_CATCHUP_SEC:-900}"
-EXPORTER="${EXPORTER:-http://localhost:9308/metrics}"
+OPEN_DRAIN_SEC="${OPEN_DRAIN_SEC:-600}"   # 부하 종료 후 열린 주문이 0이 될 때까지 최대 대기 (주문 대조는 열린 주문 0에서만 정확)
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TAG="tpc${TPC}-stop${STOP_MIN}m-r${RUN}"
 OUT="$ROOT/experiments/results/20261028-E3-consumer-catchup/raw/${TAG}"
 K6_NAME="e3-k6-${TAG}"
+LAG_NAME="e3-lag-${TAG}"
+TOOL="$ROOT/experiments/producer-tool/build/install/producer-tool"
+[ -x "$TOOL/bin/producer-tool" ] || { echo "producer-tool 빌드 필요: (cd experiments/producer-tool && ./gradlew installDist)" >&2; exit 1; }
 
 if [ -e "$OUT" ]; then echo "이미 결과가 있음: $OUT" >&2; exit 1; fi
 mkdir -p "$OUT"
@@ -39,12 +45,12 @@ ch() { docker exec mts-clickhouse clickhouse-client -q "$1"; }
 now_ms() { date +%s%3N; }
 event() { echo "$(now_ms) $*" | tee -a "$OUT/events.log"; }
 
-# 컨슈머 그룹 lag 합계 (kafka-exporter는 요청마다 Kafka에서 새로 읽는다. JVM 도구는 1회 2~3초라 1초 간격에 못 씀)
+mysql_q() { docker exec -i mts-mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot trading -N'; }
+
+# 최신 lag (lag.csv 마지막 줄). 아직 없거나 못 읽은 값은 -1 → 0으로 오인해 해소 판정하지 않게
+# kafka-exporter는 부하 중 그룹 지표를 빠뜨리고(시험 실행에서 -1 다수), JVM 도구는 호출마다 2~3초라 쓰지 않는다
 lags() {
-  curl -s "$EXPORTER" | awk '
-    /^kafka_consumergroup_lag_sum\{consumergroup="clickhouse-executions"/ {e += $NF; se = 1}
-    /^kafka_consumergroup_lag_sum\{consumergroup="clickhouse-orders"/     {o += $NF; so = 1}
-    END {printf "%d,%d", (se ? e : -1), (so ? o : -1)}'   # 값을 못 읽으면 -1 (0으로 오인해 해소 판정하지 않게)
+  tail -n 1 "$OUT/lag.csv" 2>/dev/null | awk -F, '$1 ~ /^[0-9]+$/ {printf "%d,%d", $2, $3; ok = 1} END {if (!ok) printf "-1,-1"}'
 }
 mem() { ch "SELECT value FROM system.metrics WHERE metric = 'MemoryTracking'"; }
 
@@ -57,6 +63,15 @@ if [ "${actual_tpc:-0}" != "$TPC" ]; then
 fi
 docker compose -f "$ROOT/docker-compose.yml" ps order-server --format '{{.Health}}' | grep -q healthy \
   || { echo "order-server가 healthy가 아님" >&2; rm -rf "$OUT"; exit 1; }
+
+# --- lag 샘플러 (Kafka Admin API, 1초) ----------------------------------------
+NET="$(docker inspect mts-mysql -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')"
+docker run -d --name "$LAG_NAME" --network "$NET" -v "$TOOL:/app:ro" -v "$OUT:/out" \
+  eclipse-temurin:21.0.12.1_1-jre-noble /app/bin/producer-tool lag \
+  --groups clickhouse-executions:mts.trading.executions,clickhouse-orders:mts.trading.orders \
+  --interval-ms 1000 --out /out/lag.csv >/dev/null
+for _ in $(seq 30); do [ "$(lags)" != "-1,-1" ] && break; sleep 1; done
+[ "$(lags)" != "-1,-1" ] || { echo "lag 샘플러가 값을 쓰지 않음: docker logs $LAG_NAME" >&2; exit 1; }
 event "start tag=$TAG rate=$RATE warmup=${WARMUP_SEC}s stop=${STOP_SEC}s lags=$(lags)"
 
 # --- 1초 샘플러 (백그라운드) ------------------------------------------------
@@ -74,7 +89,7 @@ SAMPLER=$!
 cleanup() {
   rm -f "$PHASE_FILE"
   wait "$SAMPLER" 2>/dev/null || true
-  docker rm -f "$K6_NAME" >/dev/null 2>&1 || true
+  docker rm -f "$K6_NAME" "$LAG_NAME" >/dev/null 2>&1 || true
   # 중간에 끊겨도 큐가 떼어진 채 남지 않게
   for q in kafka_executions_queue kafka_orders_queue; do
     [ "$(ch "EXISTS TABLE mts.$q")" = "1" ] || ch "ATTACH TABLE mts.$q"
@@ -83,7 +98,6 @@ cleanup() {
 trap cleanup EXIT
 
 # --- 부하 (중단·따라잡기 내내 유지) -------------------------------------------
-NET="$(docker inspect mts-mysql -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')"
 LOAD_SEC=$(( WARMUP_SEC + STOP_SEC + MAX_CATCHUP_SEC + 120 ))
 docker run -d --name "$K6_NAME" --network "$NET" -v "$ROOT/load-test:/scripts" grafana/k6:2.3.0 run --quiet \
   -e RATE="$RATE" -e DURATION="${LOAD_SEC}s" /scripts/orders.js >/dev/null
@@ -115,8 +129,22 @@ if [ -n "$resolved" ]; then event "resolved exec_lag=$e orders_lag=$o"; else eve
 echo steady > "$PHASE_FILE"; sleep 30
 docker stop "$K6_NAME" >/dev/null; event "load stopped"
 docker logs "$K6_NAME" > "$OUT/k6.log" 2>&1 || true
-echo drain > "$PHASE_FILE"; sleep 20
+
+# 정합성은 움직임이 멈춘 뒤에 본다: 시뮬레이터가 열린 주문을 다 처리하고(주문 상태 고정) lag가 0이 될 때까지
+echo drain > "$PHASE_FILE"
+deadline=$(( $(date +%s) + OPEN_DRAIN_SEC ))
+while [ "$(date +%s)" -lt "$deadline" ]; do
+  open="$(mysql_q <<< "SELECT COUNT(*) FROM orders WHERE status IN ('ACCEPTED', 'PARTIAL');")"
+  [ "$open" = "0" ] && break; sleep 5
+done
+event "open orders=$open"
+for _ in $(seq 120); do
+  IFS=, read -r e o <<< "$(lags)"
+  [ "$e" = "0" ] && [ "$o" = "0" ] && break; sleep 1
+done
+event "drained exec_lag=$e orders_lag=$o"
 rm -f "$PHASE_FILE"; wait "$SAMPLER" 2>/dev/null || true
+docker rm -f "$LAG_NAME" >/dev/null 2>&1 || true
 
 # --- 정합성 ------------------------------------------------------------------
 bash "$ROOT/experiments/scripts/reconcile-executions.sh" > "$OUT/reconcile-executions.txt" 2>&1 || true
