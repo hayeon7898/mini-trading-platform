@@ -96,6 +96,9 @@ flowchart TD
 | Kafka | `apache/kafka:4.3.1` | Apache 공식 이미지, KRaft 전용 |
 | Debezium (Connect) | `quay.io/debezium/connect:3.6.2.Final` | Kafka 4.2 기준 빌드, MySQL 8.4 지원 |
 | ClickHouse | `clickhouse/clickhouse-server:26.8.8.8` | 26.8 LTS |
+| Prometheus | `prom/prometheus:v3.15.0` | |
+| kafka-exporter | `danielqsj/kafka-exporter:v1.9.0` | 컨슈머 lag·ISR·URP 수집. Kafka 4.x 대응을 위해 `--kafka.version=3.6.0` 지정 |
+| Grafana | `grafana/grafana:13.2.4` | 13.2 (지원 중인 최신 minor) |
 | k6 | — | |
 
 ## 7. 디렉토리 구조
@@ -141,7 +144,12 @@ Kafka 3대 + Connect + ClickHouse는 메모리를 많이 쓴다. Docker에 **최
 | mts-kafka-1~3 | 1GB × 3 | 479~565MiB | `localhost:19092`, `29092`, `39092` |
 | mts-connect | 1.5GB | 735MiB | `http://localhost:8083` |
 | mts-clickhouse | 2GB | 190MiB | `http://localhost:8123`, `localhost:9000` |
-| **합계** | **7.5GB** | **약 2.9GiB** | |
+| mts-prometheus | 512MB | — | `http://localhost:9090` |
+| mts-kafka-exporter | 128MB | — | `http://localhost:9308/metrics` |
+| mts-grafana | 256MB | — | `http://localhost:3000` (admin / `.env`의 `GRAFANA_ADMIN_PASSWORD`) |
+| **합계** | **약 8.4GB** | **약 2.9GiB** (모니터링 3개 제외) | |
+
+상한 합계가 권장 할당(8GB)을 넘지만, 상한은 각 컨테이너가 넘지 못하는 선일 뿐 실제 사용량은 유휴 시 약 3GiB다. 모든 컨테이너가 동시에 상한까지 쓰는 일은 없으나, 부하 실험 중 메모리가 부족하면 `.wslconfig`의 `memory`를 늘린다.
 
 ### Windows(WSL2) 환경 주의사항
 
