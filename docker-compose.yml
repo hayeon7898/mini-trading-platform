@@ -5,6 +5,7 @@ name: mts
 # ---------------------------------------------------------------
 x-kafka-common: &kafka-common
   image: apache/kafka:4.3.1     # Apache 공식 이미지. 4.x는 ZooKeeper 없이 KRaft만 지원
+  restart: unless-stopped   # Docker 재시작 시 복구. docker kill/stop 한 컨테이너는 다시 띄우지 않음 (E1 장애 주입과 양립)
   mem_limit: 1g
   healthcheck:
     test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
@@ -53,6 +54,7 @@ services:
       - ./infra/prometheus:/etc/prometheus:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    restart: unless-stopped
     mem_limit: 512m
   # ---------------------------------------------------------------
   # kafka-exporter: 컨슈머 그룹 lag, 파티션 오프셋, ISR·URP → Prometheus
@@ -104,6 +106,7 @@ services:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
     depends_on:
       - prometheus   # Prometheus는 healthcheck가 없어 기동 순서만 보장
+    restart: unless-stopped
     mem_limit: 256m
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
@@ -145,6 +148,7 @@ services:
       - --max-connections=300
       # --- DATETIME을 Debezium이 UTC로 해석하므로 서버도 UTC로 통일 ---
       - --default-time-zone=+00:00
+    restart: unless-stopped
     mem_limit: 1g
     healthcheck:
       # -h 127.0.0.1(TCP)로 확인: 초기화 중 임시 서버는 소켓만 열어서
@@ -154,6 +158,38 @@ services:
       timeout: 3s
       retries: 30
       start_period: 30s
+
+  # ---------------------------------------------------------------
+  # order-server: 주문 접수 API + 체결 시뮬레이터 (#46)
+  #   http://localhost:8080  (컨테이너 간: mts-order-server:8080)
+  #   이미지는 order-server/Dockerfile로 빌드. 코드를 바꾸면 docker compose up -d --build order-server
+  #   호스트에서 ./gradlew bootRun 으로 띄울 때는 이 서비스를 멈추고 실행 (포트 8080 충돌)
+  # ---------------------------------------------------------------
+  order-server:
+    build: ./order-server
+    image: mts-order-server:local   # 로컬 빌드 이미지 이름 (latest 태그 회피)
+    container_name: mts-order-server   # 실험 스크립트·Prometheus·k6가 이 이름으로 접속
+    ports:
+      - "8080:8080"
+    environment:
+      DB_USERNAME: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      # application.yml 기본값(localhost:3307)은 호스트 실행용. 컨테이너에서는 서비스 이름으로 접속
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/trading?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&preserveInstants=false
+      # 체결 시뮬레이터. 조회 성능 실험 등 체결이 방해되면 SIMULATOR_ENABLED=false docker compose up -d order-server
+      SIMULATOR_ENABLED: ${SIMULATOR_ENABLED:-true}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: unless-stopped
+    mem_limit: 1g                    # 힙은 Dockerfile의 MaxRAMPercentage=75 → 약 768MB
+    healthcheck:
+      # liveness가 아닌 readiness: "요청을 받을 준비가 됐는가"를 본다 → --wait 후 바로 부하를 걸어도 안전
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health/readiness > /dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s              # 기동에 22~40초 걸림 (#45 Troubleshooting)
 
   # ---------------------------------------------------------------
   # Kafka: 3 브로커 클러스터 (KRaft combined mode)
@@ -240,6 +276,7 @@ services:
       OFFSET_FLUSH_INTERVAL_MS: 5000
       # E2 조치: entrypoint가 만든 MySQL 커넥터 전용 상위 폴더 (재기동 시 전체 플러그인 스캔 약 75초 제거)
       CONNECT_PLUGIN_PATH: /tmp/connect-plugins
+    restart: unless-stopped
     mem_limit: 1536m
     healthcheck:
       test: ["CMD-SHELL", "curl -fs http://localhost:8083/connector-plugins > /dev/null"]
@@ -279,6 +316,7 @@ services:
       nofile:             # 공식 권장값: 컬럼별로 파일을 다루므로 파일 핸들을 많이 씀
         soft: 262144
         hard: 262144
+    restart: unless-stopped
     mem_limit: 2g       # 서버 메모리 상한은 컨테이너 제한(cgroup)을 기준으로 자동 계산됨
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]

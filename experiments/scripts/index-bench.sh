@@ -4,7 +4,7 @@
 #
 # 후보마다: 인덱스 추가 → ANALYZE → 실행 계획 → k6(워밍업 10초 + 본측정) → 인덱스 삭제
 # 결과는 experiments/results/raw/ 에 저장하고, 마지막에 요약 표를 출력한다.
-# 전제: mts-order-server 컨테이너가 같은 Docker 네트워크에서 실행 중
+# 전제: compose의 order-server(mts-order-server)가 실행 중
 set -euo pipefail
 
 DATE=$(date +%Y%m%d)

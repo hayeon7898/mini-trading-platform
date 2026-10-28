@@ -7,7 +7,7 @@
 #   1) 체결 큐·MV를 그 값으로 다시 만든다 (executions 테이블과 컨슈머 오프셋은 유지)
 #   2) 열린 주문이 0이 될 때까지 기다린다 (이전 실행의 체결이 섞이지 않게)
 #   3) 주문 접수 부하를 주고, 그 사이 커밋된 체결의 지연 분위수를 구간별로 집계한다
-# 전제: mts-order-server가 시뮬레이터를 켠 상태로 같은 Docker 네트워크에서 실행 중
+# 전제: compose의 order-server(mts-order-server)가 시뮬레이터를 켠 상태로 실행 중 (기본값)
 set -euo pipefail
 
 read -r -a FLUSHES <<< "${FLUSH_LIST:-7500 1000 500}"

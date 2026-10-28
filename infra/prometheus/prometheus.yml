@@ -1,4 +1,4 @@
-# order-server는 compose 밖에서 같은 Docker 네트워크의 컨테이너(mts-order-server)로 실행한다.
+# order-server는 compose 서비스(container_name: mts-order-server)로 실행한다 (#46).
 global:
   scrape_interval: 5s
   evaluation_interval: 5s

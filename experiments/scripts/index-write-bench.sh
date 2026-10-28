@@ -5,7 +5,7 @@
 # 1) 인덱스 삭제 → 밀린 체결이 끝날 때까지 대기 → 500 TPS 2분
 # 2) 열린 주문 0인 상태에서 인덱스 추가, DDL 전후 orders 토픽 메시지 수 기록
 # 3) 밀린 체결 대기 → 500 TPS 2분
-# 전제: mts-order-server 컨테이너가 같은 Docker 네트워크에서 실행 중
+# 전제: compose의 order-server(mts-order-server)가 실행 중
 set -euo pipefail
 
 INDEX=idx_orders_account_created

@@ -3,13 +3,17 @@
 //   RATE=500 DURATION=5m  → 완료 기준 (에러율 1% 미만)
 //   RATE=1000 DURATION=2m → 한계 확인
 //
+// 실행 (compose 네트워크 안에서 mts-order-server로 접속):
+//   docker run --rm -i --network mts_default -v "$PWD/load-test:/scripts" grafana/k6:2.3.0 run \
+//     -e RATE=200 -e DURATION=2m /scripts/orders.js
+//
 // - constant-arrival-rate: 응답이 느려져도 초당 요청 수를 유지한다 (VU 수 고정 방식과 달리
 //   서버가 느려지면 요청도 줄어드는 착시가 없다). VU가 모자라면 dropped_iterations로 드러난다.
 // - 계좌 1~10,000 균등, 종목은 상위 10개(S0001~S0010)에 50%를 몰아 핫 종목을 만든다.
 import http from 'k6/http';
 import { check } from 'k6';
 
-const BASE_URL = __ENV.BASE_URL || 'http://host.docker.internal:8080';
+const BASE_URL = __ENV.BASE_URL || 'http://mts-order-server:8080';
 const RATE = Number(__ENV.RATE || 100);
 const DURATION = __ENV.DURATION || '1m';
 

@@ -91,7 +91,8 @@ flowchart TD
 
 | 구성 | 이미지 / 버전 | 선택 이유 |
 |---|---|---|
-| Java / Spring Boot | 21 / 3.x | |
+| Java / Spring Boot | 21 / 4.1.1 | |
+| order-server 이미지 | 빌드 `eclipse-temurin:21.0.12.1_1-jdk-noble` → 실행 `21.0.12.1_1-jre-noble` | multi-stage. CI의 GHCR 배포가 소스만 체크아웃하므로 Dockerfile 안에서 빌드 |
 | MySQL | `mysql:8.4.8` | 8.0 지원 종료에 따라 LTS인 8.4 선택 |
 | Kafka | `apache/kafka:4.3.1` | Apache 공식 이미지, KRaft 전용 |
 | Debezium (Connect) | `quay.io/debezium/connect:3.6.2.Final` | Kafka 4.2 기준 빌드, MySQL 8.4 지원 |
@@ -99,7 +100,7 @@ flowchart TD
 | Prometheus | `prom/prometheus:v3.15.0` | |
 | kafka-exporter | `danielqsj/kafka-exporter:v1.9.0` | 컨슈머 lag·ISR·URP 수집. Kafka 4.x 대응을 위해 `--kafka.version=3.6.0` 지정 |
 | Grafana | `grafana/grafana:13.2.4` | 13.2 (지원 중인 최신 minor) |
-| k6 | — | |
+| k6 | `grafana/k6:2.3.0` | 컨테이너로 실행 (호스트 설치 불필요) |
 
 ## 7. 디렉토리 구조
 
@@ -130,9 +131,21 @@ mini-trading-platform/
 
 ```bash
 cp .env.example .env        # 비밀번호 설정
-docker compose up -d --wait # 전체 스택 기동 (모든 컨테이너 healthy까지 대기)
+docker compose up -d --wait # 전체 스택 기동 (order-server 포함, 모든 컨테이너 healthy까지 대기)
 ./scripts/create-topics.sh  # 토픽 생성
+./infra/connect/register.sh # Debezium 커넥터 등록 (토픽 생성 후)
 ```
+
+- order-server 코드를 바꾸면 `docker compose up -d --build --wait order-server`로 이미지를 다시 빌드한다.
+- 호스트에서 `./gradlew bootRun`으로 띄울 때는 `docker compose stop order-server`로 8080 포트를 비운다 (DB는 `localhost:3307`).
+- 체결 시뮬레이터 없이 띄우려면 `SIMULATOR_ENABLED=false docker compose up -d order-server`.
+
+### 재시작과 데이터 보존
+
+- 모든 서비스는 `restart: unless-stopped`다. Docker·PC를 재시작하면 컨테이너가 자동으로 복구되고, 기동 순서(`depends_on`)가 어긋나 먼저 죽은 컨테이너도 Docker가 다시 띄운다.
+- `docker kill`/`docker stop`으로 멈춘 컨테이너는 다시 띄우지 않는다 → 장애 주입 실험(E1, E2)과 충돌하지 않는다 (#46에서 kill 후 Exited 유지 확인).
+- MySQL·ClickHouse는 볼륨에 데이터를 둔다. **Kafka와 Prometheus는 볼륨이 없어** 컨테이너를 새로 만들면(`down`, 설정 변경 후 `up`) 토픽·커넥터 오프셋·지표가 초기화된다. 이때는 위 실행 절차를 다시 따르고, Debezium은 MySQL 전체를 다시 스냅샷한다 (체결 약 530만 건 기준 약 5분).
+- 설정을 바꾼 뒤 `up` 전에 `docker compose up -d --dry-run`으로 다시 만들어질 컨테이너를 확인한다.
 
 ### 리소스
 
@@ -141,13 +154,14 @@ Kafka 3대 + Connect + ClickHouse는 메모리를 많이 쓴다. Docker에 **최
 | 컨테이너 | 메모리 상한 | 유휴 시 실측 | 호스트 접속 |
 |---|---|---|---|
 | mts-mysql | 1GB | 454MiB | `localhost:3307` (로컬 MySQL과 충돌 방지) |
+| mts-order-server | 1GB (힙 약 768MB) | — | `http://localhost:8080` |
 | mts-kafka-1~3 | 1GB × 3 | 479~565MiB | `localhost:19092`, `29092`, `39092` |
 | mts-connect | 1.5GB | 735MiB | `http://localhost:8083` |
 | mts-clickhouse | 2GB | 190MiB | `http://localhost:8123`, `localhost:9000` |
 | mts-prometheus | 512MB | — | `http://localhost:9090` |
 | mts-kafka-exporter | 128MB | — | `http://localhost:9308/metrics` |
 | mts-grafana | 256MB | — | `http://localhost:3000` (admin / `.env`의 `GRAFANA_ADMIN_PASSWORD`) |
-| **합계** | **약 8.4GB** | **약 2.9GiB** (모니터링 3개 제외) | |
+| **합계** | **약 9.4GB** | **약 2.9GiB** (모니터링 3개·order-server 제외) | |
 
 상한 합계가 권장 할당(8GB)을 넘지만, 상한은 각 컨테이너가 넘지 못하는 선일 뿐 실제 사용량은 유휴 시 약 3GiB다. 모든 컨테이너가 동시에 상한까지 쓰는 일은 없으나, 부하 실험 중 메모리가 부족하면 `.wslconfig`의 `memory`를 늘린다.
 

@@ -33,7 +33,7 @@ mkdir -p "$OUT"
 "${KT[@]}" --describe --topic "$TOPIC" | tee "$OUT/describe.txt"
 
 # 처리량용 배치 설정 + lz4 압축(브로커 디스크 절약, 운영에서도 흔한 설정)
-docker run --rm --network "$NET" -v "$TOOL:/app:ro" -v "$OUT:/out" eclipse-temurin:21-jre \
+docker run --rm --network "$NET" -v "$TOOL:/app:ro" -v "$OUT:/out" eclipse-temurin:21.0.12.1_1-jre-noble \
   /app/bin/producer-tool produce --topic "$TOPIC" --format execution --key id --record-each false \
   --acks all --idempotence true --rate "$RATE" --duration "$DURATION" \
   --producer-config linger.ms=20,batch.size=262144,compression.type=lz4 2>&1 | tee "$OUT/producer.log"

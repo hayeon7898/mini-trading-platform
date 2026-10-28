@@ -133,12 +133,18 @@ MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어
 
 ```bash
 cp .env.example .env          # 비밀번호 설정
-docker compose up -d --wait   # 전체 스택 기동 (모든 컨테이너 healthy까지 대기)
+docker compose up -d --wait   # 전체 스택 기동 (order-server 포함, 모든 컨테이너 healthy까지 대기)
 ./scripts/create-topics.sh    # 토픽 생성 (커넥터 등록 전에 실행)
+./infra/connect/register.sh   # Debezium 커넥터 등록
+
+# 주문 부하 (200 TPS, 2분)
+docker run --rm -i --network mts_default -v "$PWD/load-test:/scripts" grafana/k6:2.3.0 run \
+  -e RATE=200 -e DURATION=2m /scripts/orders.js
 ```
 
 | 서비스 | 호스트 접속 주소 |
 |---|---|
+| 주문 서버 | http://localhost:8080 |
 | MySQL | `localhost:3307` |
 | Kafka | `localhost:19092`, `29092`, `39092` |
 | Kafka Connect | http://localhost:8083 |
