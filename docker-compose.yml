@@ -5,6 +5,7 @@ name: mts
 # ---------------------------------------------------------------
 x-kafka-common: &kafka-common
   image: apache/kafka:4.3.1     # Apache 공식 이미지. 4.x는 ZooKeeper 없이 KRaft만 지원
+  restart: unless-stopped   # Docker 재시작 시 복구. docker kill/stop 한 컨테이너는 다시 띄우지 않음 (E1 장애 주입과 양립)
   mem_limit: 1g
   healthcheck:
     test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 > /dev/null 2>&1"]
@@ -53,6 +54,7 @@ services:
       - ./infra/prometheus:/etc/prometheus:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    restart: unless-stopped
     mem_limit: 512m
   # ---------------------------------------------------------------
   # kafka-exporter: 컨슈머 그룹 lag, 파티션 오프셋, ISR·URP → Prometheus
@@ -104,6 +106,7 @@ services:
       - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
     depends_on:
       - prometheus   # Prometheus는 healthcheck가 없어 기동 순서만 보장
+    restart: unless-stopped
     mem_limit: 256m
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
@@ -145,6 +148,7 @@ services:
       - --max-connections=300
       # --- DATETIME을 Debezium이 UTC로 해석하므로 서버도 UTC로 통일 ---
       - --default-time-zone=+00:00
+    restart: unless-stopped
     mem_limit: 1g
     healthcheck:
       # -h 127.0.0.1(TCP)로 확인: 초기화 중 임시 서버는 소켓만 열어서
@@ -177,6 +181,7 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+    restart: unless-stopped
     mem_limit: 1g                    # 힙은 Dockerfile의 MaxRAMPercentage=75 → 약 768MB
     healthcheck:
       # liveness가 아닌 readiness: "요청을 받을 준비가 됐는가"를 본다 → --wait 후 바로 부하를 걸어도 안전
@@ -271,6 +276,7 @@ services:
       OFFSET_FLUSH_INTERVAL_MS: 5000
       # E2 조치: entrypoint가 만든 MySQL 커넥터 전용 상위 폴더 (재기동 시 전체 플러그인 스캔 약 75초 제거)
       CONNECT_PLUGIN_PATH: /tmp/connect-plugins
+    restart: unless-stopped
     mem_limit: 1536m
     healthcheck:
       test: ["CMD-SHELL", "curl -fs http://localhost:8083/connector-plugins > /dev/null"]
@@ -310,6 +316,7 @@ services:
       nofile:             # 공식 권장값: 컬럼별로 파일을 다루므로 파일 핸들을 많이 씀
         soft: 262144
         hard: 262144
+    restart: unless-stopped
     mem_limit: 2g       # 서버 메모리 상한은 컨테이너 제한(cgroup)을 기준으로 자동 계산됨
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
