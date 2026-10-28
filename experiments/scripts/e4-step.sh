@@ -113,7 +113,7 @@ for rate in $RATES; do
   s="$(now_ms)"
   log "step rate=$rate start"
   mkdir -p "$OUT/producer-$rate"
-  docker run --rm --network "$NET" -v "$TOOL:/app:ro" -v "$OUT/producer-$rate:/out" eclipse-temurin:21-jre \
+  docker run --rm --network "$NET" -v "$TOOL:/app:ro" -v "$OUT/producer-$rate:/out" eclipse-temurin:21.0.12.1_1-jre-noble \
     /app/bin/producer-tool produce --topic "$TOPIC" --format execution --key id --record-each false \
     --acks all --idempotence true --rate "$rate" --duration "$STEP_SEC" --id-offset "$ID_OFFSET" \
     --producer-config linger.ms=20,batch.size=262144,compression.type=lz4 \

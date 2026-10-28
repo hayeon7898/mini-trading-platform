@@ -71,7 +71,7 @@ leader_of() {
 
 run_tool() {
   docker run --rm --network "$NET" -v "$TOOL:/app:ro" -v "$OUT:/out" \
-    eclipse-temurin:21-jre /app/bin/producer-tool "$@"
+    eclipse-temurin:21.0.12.1_1-jre-noble /app/bin/producer-tool "$@"
 }
 
 # --- 0. 사전 조건: 브로커 3대 실행 중, URP 0 ----------------------------------
