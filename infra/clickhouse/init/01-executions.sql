@@ -61,7 +61,11 @@ CREATE TABLE IF NOT EXISTS mts.executions
     ingested_at DateTime64(3, 'UTC') DEFAULT now64(3)
 )
 ENGINE = ReplacingMergeTree
-PARTITION BY toYYYYMMDD(executed_at)
+-- 월 단위 파티션 (#49). 일 단위였을 때 과거 체결이 섞인 묶음(스냅샷 재전송 등)이 INSERT 한 번에
+-- 100개 넘는 파티션에 걸쳐 TOO_MANY_PARTS로 거부되고, Kafka 엔진이 같은 위치를 무한히 재시도하며 적재가 멈췄다.
+-- 파티션은 데이터 관리(DROP PARTITION 등) 단위이고 조회는 ORDER BY id로 충분하므로 월 단위로 둔다 (주문과 동일).
+-- 같은 id는 항상 같은 executed_at → 같은 파티션이라 ReplacingMergeTree의 중복 제거에 영향 없음.
+PARTITION BY toYYYYMM(executed_at)
 ORDER BY id;
 
 -- 이미 만들어진 테이블에 kafka_ts 추가 (#30). 새로 만드는 경우에는 아무 일도 하지 않는다.

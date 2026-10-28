@@ -44,7 +44,7 @@ CREATE TABLE executions (
   source_ts DateTime64(3),
   ingested_at DateTime64(3) DEFAULT now64(3)
 ) ENGINE = ReplacingMergeTree
-PARTITION BY toYYYYMMDD(executed_at)
+PARTITION BY toYYYYMM(executed_at)
 ORDER BY id;
 
 -- 3) 변환 MV
@@ -55,6 +55,10 @@ SELECT id, order_id, account_id, symbol, side,
        fromUnixTimestamp64Milli(__source_ts_ms) AS source_ts
 FROM kafka_executions_queue;
 ```
+
+> **파티션 단위는 월(`toYYYYMM`)**로 둔다 (#49). 처음에는 일 단위였으나, 과거 체결이 섞인 묶음(Debezium 전체 스냅샷 재전송 등)이
+> INSERT 한 번에 100개 넘는 일 파티션에 걸쳐 `TOO_MANY_PARTS`로 거부되었고, Kafka 엔진이 커밋 없이 같은 위치를 재시도하며 적재가 멈췄다.
+> 파티션은 데이터 관리 단위이고 조회는 `ORDER BY id`로 충분하므로, 데이터 1년 기준 13개 수준이 되는 월 단위가 적절하다.
 
 > 위 컬럼 타입은 02 스펙에서 실제 메시지 포맷을 확인한 뒤 맞춘다. `orders`도 같은 패턴으로 만들되, UPDATE가 반복되므로 `ReplacingMergeTree(updated_at)`로 최신 상태만 남긴다.
 
