@@ -6,6 +6,10 @@ spring:
     url: jdbc:mysql://localhost:3307/trading?connectionTimeZone=UTC&forceConnectionTimeZoneToSession=true&preserveInstants=false
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    hikari:
+      # L1 실험(#15) 결과: 기본값 10에서 500 TPS 처리량 217/s, p95 7.29s → 30에서 497/s, 790ms.
+      # 요청 스레드와 체결 시뮬레이터 워커가 같은 풀을 쓴다. (experiments/results/20261019-L1-*)
+      maximum-pool-size: 30
   jpa:
     open-in-view: false
     hibernate:
