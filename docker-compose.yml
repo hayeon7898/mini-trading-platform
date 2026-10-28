@@ -81,6 +81,37 @@ services:
     restart: unless-stopped
     mem_limit: 128m
   # ---------------------------------------------------------------
+  # Grafana: 대시보드 (#42)
+  #   http://localhost:3000  (admin / .env의 GRAFANA_ADMIN_PASSWORD)
+  #   데이터소스·대시보드는 infra/grafana/provisioning의 파일이 원본.
+  #   볼륨을 두지 않음 → 재생성하면 UI에서 만든 것은 사라지고 파일 기준으로 다시 뜸
+  # ---------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:13.2.4   # 13.2 (현재 지원 중인 최신 minor)
+    container_name: mts-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      # 기동 시 외부 접속을 막아 재현성 확보: 기본 플러그인 자동 설치·업데이트 확인·사용 통계 전송 끔
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus   # Prometheus는 healthcheck가 없어 기동 순서만 보장
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+  # ---------------------------------------------------------------
   # MySQL: 주문·체결 원장 DB (CDC 원천)
   # ---------------------------------------------------------------
   mysql:

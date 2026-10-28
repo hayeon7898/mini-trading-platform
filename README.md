@@ -10,6 +10,7 @@ MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어
 ![Debezium](https://img.shields.io/badge/Debezium-3.6.2-91D443)
 ![ClickHouse](https://img.shields.io/badge/ClickHouse-26.8_LTS-FFCC01?logo=clickhouse&logoColor=black)
 ![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?logo=prometheus&logoColor=white)
+![Grafana](https://img.shields.io/badge/Grafana-13.2-F46800?logo=grafana&logoColor=white)
 ![k6](https://img.shields.io/badge/k6-7D64FF?logo=k6&logoColor=white)
 
 ---
@@ -44,6 +45,7 @@ flowchart LR
     KF -.확장.-> SSE[WebFlux SSE]
     OS -.지표.-> PR[Prometheus]
     KF -.kafka-exporter.-> PR
+    PR --> GF[Grafana]
 ```
 
 **주문 1건의 흐름**
@@ -69,7 +71,7 @@ flowchart LR
 | CDC | Debezium MySQL (Kafka Connect) | `3.6.2.Final` | binlog 기반, MySQL 8.4 지원 |
 | 이벤트 버스 | Apache Kafka (KRaft, 3 브로커) | `4.3.1` | ZooKeeper 없는 공식 이미지 |
 | 분석 저장소 | ClickHouse | `26.8.8.8` | 26.8 LTS, Kafka 엔진 내장 |
-| 모니터링 | Prometheus, kafka-exporter | | HikariCP 커넥션 대기·서버 응답 시간(L1), 컨슈머 lag(E4) 등 실험 지표 수집 |
+| 모니터링 | Prometheus, kafka-exporter, Grafana | `v3.15.0`, `v1.9.0`, `13.2.4` | 대시보드는 파일로 프로비저닝. HikariCP 커넥션 대기·서버 응답 시간(L1), 컨슈머 lag(E4) 등 실험 지표 수집 |
 | 부하 테스트 | k6 | | |
 | 확장 | Flink, Spring WebFlux(SSE), Redis | | Phase 2 |
 
@@ -149,6 +151,8 @@ docker compose up -d --wait   # 전체 스택 기동 (모든 컨테이너 health
 | Kafka | `localhost:19092`, `29092`, `39092` |
 | Kafka Connect | http://localhost:8083 |
 | ClickHouse | http://localhost:8123, `localhost:9000` |
+| Prometheus | http://localhost:9090 |
+| Grafana | http://localhost:3000 (admin / `.env`의 `GRAFANA_ADMIN_PASSWORD`) |
 
 <details>
 <summary>Windows(WSL2) 사용 시 주의사항</summary>
@@ -166,7 +170,7 @@ docker compose up -d --wait   # 전체 스택 기동 (모든 컨테이너 health
 ```
 mini-trading-platform/
 ├── docker-compose.yml
-├── infra/            # mysql, connect, clickhouse, prometheus 설정
+├── infra/            # mysql, connect, clickhouse, prometheus, grafana 설정
 ├── order-server/     # Spring Boot 주문 서버
 ├── load-test/        # k6 스크립트
 ├── scripts/          # 토픽 생성 등 운영 스크립트

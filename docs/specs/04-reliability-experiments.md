@@ -8,9 +8,11 @@
 
 ## 모니터링 준비
 
-- kafka-exporter: 컨슈머 그룹별 lag
-- Kafka JMX exporter: 브로커 처리량, Under-replicated partitions, ISR 축소/확장
-- Grafana 대시보드 패널: 토픽 유입 TPS, 컨슈머 lag, end-to-end 지연(03 스펙 쿼리), URP 수
+- kafka-exporter: 컨슈머 그룹별·파티션별 lag, ISR 수, Under-replicated partitions
+- Grafana 대시보드(`infra/grafana`): 토픽 유입, 컨슈머 소비 속도, 컨슈머 lag, URP, order-server p95·HikariCP
+- 범위에서 뺀 것 (#42)
+  - Kafka JMX exporter: URP·ISR은 kafka-exporter로 수집 중이라 제외. 브로커 바이트 처리량·ISR 축소 비율이 필요한 실험이 생기면 추가
+  - end-to-end 지연 패널: ClickHouse 데이터소스 플러그인이 필요해 제외. 지연은 `experiments/scripts/e2e-latency-bench.sh`로 측정
 
 ---
 
