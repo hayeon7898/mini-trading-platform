@@ -34,8 +34,9 @@ MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어
 
 ## 🐟 아키텍처
 
+<img width="1000" height="800" alt="mtp-Arch" src="https://github.com/user-attachments/assets/3bb17fc0-ed41-46dd-988c-7569782b0813" />
 
-<img width="800"  alt="mtp-Arch" src="https://github.com/user-attachments/assets/4d9a7f5f-2cd0-4804-b52d-2d6af7b2f6b9" />
+
 
 
 
