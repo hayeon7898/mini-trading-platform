@@ -70,7 +70,8 @@ scope 예: `order`, `cdc`, `kafka`, `clickhouse`, `infra`, `load`, `monitoring`,
 ## 자주 쓰는 실행 명령
 
 ```bash
-docker compose up -d            # 전체 인프라 기동
+docker compose up -d --wait     # 전체 인프라 기동 (order-server 포함)
+docker compose up -d --build --wait order-server   # order-server 코드 변경 반영
 docker compose ps               # 상태 확인
 ./scripts/setup-github.sh       # 최초 1회: 라벨·마일스톤 생성
 git config core.hooksPath .githooks   # 최초 1회: 커밋 메시지 검사 hook 활성화
