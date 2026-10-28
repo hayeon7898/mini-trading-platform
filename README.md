@@ -34,19 +34,8 @@ MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어
 
 ## 🐟 아키텍처
 
-```mermaid
-flowchart LR
-    K6[k6 부하 생성기] --> OS[Spring Boot<br/>주문 서버]
-    OS --> MY[(MySQL<br/>trading DB)]
-    MY -- binlog --> DBZ[Debezium<br/>Kafka Connect]
-    DBZ --> KF[[Kafka 3-broker<br/>KRaft]]
-    KF --> CH[(ClickHouse<br/>Kafka 엔진 → MV)]
-    KF -.확장.-> FL[Flink Job]
-    KF -.확장.-> SSE[WebFlux SSE]
-    OS -.지표.-> PR[Prometheus]
-    KF -.kafka-exporter.-> PR
-    PR --> GF[Grafana]
-```
+<img width="900" alt="mtp-Arch" src="https://github.com/user-attachments/assets/44e0df36-29a6-4311-9818-5c0dd9eb36c3" />
+
 
 **주문 1건의 흐름**
 
