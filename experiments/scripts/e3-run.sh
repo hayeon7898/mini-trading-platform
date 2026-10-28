@@ -152,18 +152,24 @@ bash "$ROOT/experiments/scripts/reconcile-orders.sh"     > "$OUT/reconcile-order
 
 # --- 요약 ------------------------------------------------------------------
 awk -F, -v attach="$ATTACH_MS" -v thr="$RESOLVE_LAG" '
+  function sec(t) { return (t == "" ? "-" : sprintf("%.1f", (t - attach) / 1000)) }
   NR == 1 { next }
   $2 == "stopped" || $2 == "catchup" { if ($3 > max_e) max_e = $3; if ($4 > max_o) max_o = $4 }
   $2 == "catchup" || $2 == "steady" {
     if ($5 > max_mem) max_mem = $5
-    if ($1 >= attach && first == "" && prev_e != "" && $3 < prev_e) first = $1
-    if ($1 >= attach && res == "" && $3 >= 0 && $4 >= 0 && $3 <= thr && $4 <= thr) res = $1
+    if ($1 >= attach) {
+      # 첫 소비: 직전 샘플보다 lag가 줄어든 첫 시점 (큐마다 따로)
+      if (fe == "" && pe != "" && $3 >= 0 && $3 < pe) fe = $1
+      if (fo == "" && po != "" && $4 >= 0 && $4 < po) fo = $1
+      if (re == "" && $3 >= 0 && $3 <= thr) re = $1
+      if (ro == "" && $4 >= 0 && $4 <= thr) ro = $1
+    }
   }
-  { prev_e = $3 }
+  { pe = $3; po = $4 }
   END {
     printf "lag 최고치 (체결/주문): %d / %d\n", max_e, max_o
-    printf "첫 소비까지 (ATTACH 기준): %s초\n", (first == "" ? "-" : sprintf("%.1f", (first - attach) / 1000))
-    printf "해소까지 (ATTACH 기준, lag <= %d): %s초\n", thr, (res == "" ? "-" : sprintf("%.1f", (res - attach) / 1000))
+    printf "첫 소비까지 (ATTACH 기준, 체결/주문): %s / %s초\n", sec(fe), sec(fo)
+    printf "해소까지 (ATTACH 기준, lag <= %d, 체결/주문): %s / %s초\n", thr, sec(re), sec(ro)
     printf "따라잡기 중 ClickHouse MemoryTracking 최고: %.0f MiB\n", max_mem / 1048576
   }' "$OUT/samples.csv" | tee "$OUT/summary.txt"
 grep -h "결과:" "$OUT"/reconcile-*.txt | tee -a "$OUT/summary.txt"
