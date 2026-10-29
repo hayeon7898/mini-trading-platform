@@ -1,0 +1,11 @@
+WARNING: Error parsing config file (/home/hayeon/.docker/config.json): invalid character '}' looking for beginning of object key string
+기준 체결 id: 5900058 (적재 대기 10초)
+WARNING: Error parsing config file (/home/hayeon/.docker/config.json): invalid character '}' looking for beginning of object key string
+WARNING: Error parsing config file (/home/hayeon/.docker/config.json): invalid character '}' looking for beginning of object key string
+WARNING: Error parsing config file (/home/hayeon/.docker/config.json): invalid character '}' looking for beginning of object key string
+source                 | rows       | sum(quantity)
+MySQL                  | 5113638    | 60885244
+ClickHouse FINAL       | 5113638    | 60885244
+ClickHouse (머지 전) | 9667079    | 115103622
+머지 전 중복 행: 4553441
+결과: 일치

@@ -1,0 +1,12 @@
+WARNING: Error parsing config file (/home/hayeon/.docker/config.json): invalid character '}' looking for beginning of object key string
+WARNING: Error parsing config file (/home/hayeon/.docker/config.json): invalid character '}' looking for beginning of object key string
+기준 주문 id: 2517278 (적재 대기 10초)
+WARNING: Error parsing config file (/home/hayeon/.docker/config.json): invalid character '}' looking for beginning of object key string
+WARNING: Error parsing config file (/home/hayeon/.docker/config.json): invalid character '}' looking for beginning of object key string
+status     | MySQL (건수, 체결수량) | ClickHouse FINAL
+CANCELED   | 3 / 0                    | 3 / 0
+FILLED     | 1206575 / 60885244       | 1206575 / 60885244
+WARNING: Error parsing config file (/home/hayeon/.docker/config.json): invalid character '}' looking for beginning of object key string
+WARNING: Error parsing config file (/home/hayeon/.docker/config.json): invalid character '}' looking for beginning of object key string
+ClickHouse 머지 전 행: 2255065 (FINAL 1206578, 같은 주문의 이전 상태 1048487행)
+결과: 일치

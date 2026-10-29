@@ -1,0 +1,7 @@
+기준 체결 id: 6112938 (적재 대기 10초)
+source                 | rows       | sum(quantity)
+MySQL                  | 5326518    | 63424282
+ClickHouse FINAL       | 5326518    | 63424282
+ClickHouse (머지 전) | 9879959    | 117642660
+머지 전 중복 행: 4553441
+결과: 일치
