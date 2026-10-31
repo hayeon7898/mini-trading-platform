@@ -33,7 +33,8 @@ E4가 권장했지만 아직 운영 큐에 적용하지 않은 `kafka_thread_per
 | 항목 | 값 |
 |---|---|
 | 호스트 | Docker 4코어, 8GB. 전체 스택이 같은 코어를 공유 |
-| 부하 | k6 `orders.js` 300 TPS. 워밍업 1분 후 중단, 재개 후에도 lag 0까지 계속 (500은 실제 353/s만 나와 회차마다 유입량이 흔들림) |
+| 부하 | k6 `orders.js` 80 TPS. 워밍업 1분 후 중단, 재개 후에도 lag 0까지 계속. 매 회차 열린 주문 0에서 출발 |
+| 부하를 80으로 둔 이유 | 시뮬레이터는 초당 약 87건의 주문만 체결 처리(체결 유입 약 365/s ÷ 주문당 체결 4.2건). 300 TPS 1차 측정에서 열린 주문이 회차마다 2만 → 3만 → 13만 건으로 쌓여 출발 상태가 달라졌다. 체결 유입은 시뮬레이터 속도로 정해지므로 부하를 낮춰도 쌓이는 체결량은 거의 같다 |
 | 중단 대상 | `mts.kafka_executions_queue`, `mts.kafka_orders_queue` (`DETACH TABLE` / `ATTACH TABLE`) |
 | 변수 | 적재 방식 `kafka_thread_per_consumer` 0 / 1 × 중단 5분 5회, 중단 20분 각 1회 |
 | 고정 | 파티션 6, `kafka_num_consumers = 3`, 묶음 10000, 두 큐 모두 `kafka_flush_interval_ms = 1000`, order-server 풀 30 (#45), compose 기동 (#46), 체결 테이블 월 파티션 (#49) |

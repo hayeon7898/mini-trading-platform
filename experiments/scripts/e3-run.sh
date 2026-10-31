@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # E3 컨슈머 중단 후 따라잡기 (#43)
 #
-# 주문 부하(기본 300 TPS)를 건 상태에서 운영 큐 두 개를 DETACH → STOP분 대기 → ATTACH 하고,
+# 주문 부하(기본 80 TPS)를 건 상태에서 운영 큐 두 개를 DETACH → STOP분 대기 → ATTACH 하고,
 # 부하를 계속 넣으면서 lag가 해소될 때까지 1초 간격으로 기록한다. 끝나면 부하를 멈추고 정합성을 대조한다.
 #
 # 사용법: bash experiments/scripts/e3-run.sh <tpc:0|1> <stop_min> <run>
 #   전제: e3-set-tpc.sh <tpc> 로 큐 설정을 맞춘 상태, 두 컨슈머 그룹 lag가 작을 것
 #         producer-tool 빌드 (cd experiments/producer-tool && ./gradlew installDist) — lag 샘플러로 사용
-#   환경변수: RATE(300) WARMUP_SEC(60) STOP_SEC(stop_min*60, 시험 실행용) RESOLVE_LAG(10000) MAX_CATCHUP_SEC(900)
+#   환경변수: RATE(80) PRE_DRAIN_SEC(1800) WARMUP_SEC(60) STOP_SEC(stop_min*60, 시험 실행용) RESOLVE_LAG(10000) MAX_CATCHUP_SEC(900)
 #
 # 기록 (raw/<tag>/)
 #   lag.csv     : 1초 간격 lag 원본 (producer-tool lag, Kafka Admin API로 끝 오프셋 - 커밋 오프셋)
@@ -22,13 +22,16 @@ if [ "$#" -ne 3 ]; then
   exit 1
 fi
 TPC="$1"; STOP_MIN="$2"; RUN="$3"
-# 500은 시험 실행에서 실제 353/s만 나와(dropped) 회차마다 유입량이 흔들림 → 확실히 소화되는 300으로 고정
-RATE="${RATE:-300}"
+# 시뮬레이터는 초당 약 87건의 주문만 체결 처리한다(체결 유입 약 365/s ÷ 주문당 체결 4.2건).
+# 300 TPS에서는 열린 주문이 매초 200건 넘게 쌓여 회차마다 출발 상태가 달라졌다(#43 1차 측정).
+# 체결 유입은 시뮬레이터 속도로 정해지므로, 부하를 시뮬레이터가 감당하는 80으로 낮춰도 쌓이는 체결량은 거의 같다.
+RATE="${RATE:-80}"
 WARMUP_SEC="${WARMUP_SEC:-60}"
 STOP_SEC="${STOP_SEC:-$(( STOP_MIN * 60 ))}"
 RESOLVE_LAG="${RESOLVE_LAG:-10000}"     # 묶음 1개(kafka_max_block_size) 이하면 해소로 본다
 MAX_CATCHUP_SEC="${MAX_CATCHUP_SEC:-900}"
 OPEN_DRAIN_SEC="${OPEN_DRAIN_SEC:-600}"   # 부하 종료 후 열린 주문이 0이 될 때까지 최대 대기 (주문 대조는 열린 주문 0에서만 정확)
+PRE_DRAIN_SEC="${PRE_DRAIN_SEC:-1800}"    # 시작 전 열린 주문이 0이 될 때까지 최대 대기 (앞 회차 상태가 넘어오지 않게)
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 TAG="tpc${TPC}-stop${STOP_MIN}m-r${RUN}"
@@ -63,6 +66,15 @@ if [ "${actual_tpc:-0}" != "$TPC" ]; then
 fi
 docker compose -f "$ROOT/docker-compose.yml" ps order-server --format '{{.Health}}' | grep -q healthy \
   || { echo "order-server가 healthy가 아님" >&2; rm -rf "$OUT"; exit 1; }
+
+# 같은 출발 상태: 열린 주문 0 (시뮬레이터가 앞 회차 주문을 다 처리할 때까지)
+deadline=$(( $(date +%s) + PRE_DRAIN_SEC ))
+while :; do
+  open="$(mysql_q <<< "SELECT COUNT(*) FROM orders WHERE status IN ('ACCEPTED', 'PARTIAL');")"
+  [ "$open" = "0" ] && break
+  [ "$(date +%s)" -lt "$deadline" ] || { echo "시작 전 열린 주문이 ${open}건 남음" >&2; rm -rf "$OUT"; exit 1; }
+  sleep 10
+done
 
 # --- lag 샘플러 (Kafka Admin API, 1초) ----------------------------------------
 NET="$(docker inspect mts-mysql -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{end}}')"
