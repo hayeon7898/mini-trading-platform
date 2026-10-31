@@ -9,7 +9,7 @@
 #         producer-tool 빌드 (cd experiments/producer-tool && ./gradlew installDist) — lag 샘플러로 사용
 #   환경변수: RATE(80) PRE_DRAIN_SEC(1800) WARMUP_SEC(60) STOP_SEC(stop_min*60, 시험 실행용) RESOLVE_LAG(10000) MAX_CATCHUP_SEC(900)
 #
-# 기록 (raw/<tag>/)
+# 기록 (raw/rate<RATE>-tpc<tpc>-stop<분>m-r<회차>/)
 #   lag.csv     : 1초 간격 lag 원본 (producer-tool lag, Kafka Admin API로 끝 오프셋 - 커밋 오프셋)
 #   samples.csv : 1초 간격 — 시각(ms), 단계, 체결 lag, 주문 lag, ClickHouse MemoryTracking(바이트)
 #   events.log  : 단계 전환 시각
@@ -34,7 +34,7 @@ OPEN_DRAIN_SEC="${OPEN_DRAIN_SEC:-600}"   # 부하 종료 후 열린 주문이 0
 PRE_DRAIN_SEC="${PRE_DRAIN_SEC:-1800}"    # 시작 전 열린 주문이 0이 될 때까지 최대 대기 (앞 회차 상태가 넘어오지 않게)
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-TAG="tpc${TPC}-stop${STOP_MIN}m-r${RUN}"
+TAG="rate${RATE}-tpc${TPC}-stop${STOP_MIN}m-r${RUN}"   # 부하를 이름에 포함: 조건이 다른 결과가 같은 이름으로 겹치지 않게 (결과 폴더를 옮길 필요 없음)
 OUT="$ROOT/experiments/results/20261028-E3-consumer-catchup/raw/${TAG}"
 K6_NAME="e3-k6-${TAG}"
 LAG_NAME="e3-lag-${TAG}"
