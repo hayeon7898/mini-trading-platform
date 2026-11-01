@@ -32,7 +32,7 @@ disable-model-invocation: true
 
 ## 단건 이슈
 
-1. 설명과 `docs/ARCHITECTURE.md`, 관련 스펙을 참고해 목적·할 일·완료 기준을 구체적으로 작성한다.
+1. 설명과 `docs/ARCHITECTURE.md`, 관련 스펙을 참고해 목적, 할 일, 완료 기준을 구체적으로 작성한다.
    완료 기준은 명령어로 확인 가능한 형태로 쓴다.
 2. `gh issue list --state open` 으로 비슷한 이슈가 있는지 확인한다.
 3. 제목, 라벨, 본문을 보여주고 **사용자 확인을 받는다.**

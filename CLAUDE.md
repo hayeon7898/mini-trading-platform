@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-미니 증권 주문·체결 플랫폼. MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse 실시간 파이프라인을 만들고, 장애·부하 실험으로 정합성과 성능을 수치로 검증하는 포트폴리오 프로젝트다.
+미니 증권 주문 체결 플랫폼. MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse 실시간 파이프라인을 만들고, 장애와 부하 실험으로 정합성과 성능을 수치로 검증하는 포트폴리오 프로젝트다.
 
 ## 먼저 읽을 문서
 
@@ -13,8 +13,8 @@
 
 - 모든 설정은 사용자가 직접 설명할 수 있어야 한다. 설계 결정(설정값, 테이블 엔진, 동시성 처리 등)을 할 때는 **왜 그렇게 했는지와 대안을 짧게 설명**한다.
 - 한 번에 많은 코드를 만들지 않는다. 작고 설명 가능한 단위로 나눠 진행한다.
-- 이미지·라이브러리 버전은 정확히 고정한다. `latest` 태그 금지. 정한 버전은 ARCHITECTURE.md 6절 표에 기록한다.
-- 비밀번호·키는 `.env`에만 둔다. `.env`는 커밋하지 않고 `.env.example`을 갱신한다.
+- 이미지와 라이브러리 버전은 정확히 고정한다. `latest` 태그 금지. 정한 버전은 ARCHITECTURE.md 6절 표에 기록한다.
+- 비밀번호와 키는 `.env`에만 둔다. `.env`는 커밋하지 않고 `.env.example`을 갱신한다.
 - 성능 개선은 반드시 전/후 수치를 남긴다. 실험 결과는 `experiments/results/YYYYMMDD-<실험ID>.md` 형식으로 기록한다.
 - 실무가 아닌 재현 실험은 문서에 "장애 재현 실험"으로 명시한다.
 
@@ -71,24 +71,24 @@
 | feat | 기능 추가 |
 | fix | 버그 수정 |
 | perf | 성능 개선 |
-| exp | 실험 스크립트·결과 |
+| exp | 실험 스크립트, 결과 |
 | refactor | 동작 변화 없는 구조 변경 |
 | test | 테스트 |
 | docs | 문서 |
-| chore | 빌드·설정·의존성 |
+| chore | 빌드, 설정, 의존성 |
 
 scope 예: `order`, `cdc`, `kafka`, `clickhouse`, `infra`, `load`, `monitoring`, `docs`
 
 - 커밋은 논리적 변경 하나 단위. 여러 변경이 섞여 있으면 나눠서 커밋한다.
-- 커밋·푸시·PR 생성·머지 전에는 **항상 사용자 확인**을 받는다.
+- 커밋, 푸시, PR 생성, 머지 전에는 **항상 사용자 확인**을 받는다.
 - 요약은 한국어로, 50자 안팎.
 
 ## CI/CD (GitHub Actions)
 
 | 워크플로 | 트리거 | 하는 일 |
 |---|---|---|
-| `order-server` | `order-server/**` 변경 PR, main 푸시 | Gradle 빌드·테스트. main 푸시 시 GHCR에 이미지 배포 (Dockerfile 있을 때) |
-| `infra` | compose·infra·스크립트 변경 PR | shellcheck, `docker compose config`, JSON 문법 검사 |
+| `order-server` | `order-server/**` 변경 PR, main 푸시 | Gradle 빌드와 테스트. main 푸시 시 GHCR에 이미지 배포 (Dockerfile 있을 때) |
+| `infra` | compose, infra, 스크립트 변경 PR | shellcheck, `docker compose config`, JSON 문법 검사 |
 | `commit-lint` | 모든 PR | PR 제목과 커밋 메시지 컨벤션 검사 |
 
 - CI가 실패한 PR은 머지하지 않는다. 실패 원인을 먼저 고친다.
@@ -111,6 +111,6 @@ scope 예: `order`, `cdc`, `kafka`, `clickhouse`, `infra`, `load`, `monitoring`,
 docker compose up -d --wait     # 전체 인프라 기동 (order-server 포함)
 docker compose up -d --build --wait order-server   # order-server 코드 변경 반영
 docker compose ps               # 상태 확인
-./scripts/setup-github.sh       # 최초 1회: 라벨·마일스톤 생성
+./scripts/setup-github.sh       # 최초 1회: 라벨, 마일스톤 생성
 git config core.hooksPath .githooks   # 최초 1회: 커밋 메시지 검사 hook 활성화
 ```
