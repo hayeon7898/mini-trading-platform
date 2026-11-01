@@ -159,6 +159,7 @@ docker run --rm -i --network mts_default -v "$PWD/load-test:/scripts" grafana/k6
 <details>
 <summary>Windows(WSL2) 사용 시 주의사항</summary>
 
+- 레포는 Windows 드라이브(`/mnt/c`)가 아닌 **WSL 홈(`~/`)에 클론**합니다. VS Code는 WSL 확장으로 엽니다. 자세한 이유는 [ARCHITECTURE 8절](docs/ARCHITECTURE.md).
 - 메모리는 Docker Desktop 화면이 아닌 `%UserProfile%\.wslconfig`의 `memory`로 지정합니다.
 - 셸 스크립트·설정 파일은 LF 줄바꿈이어야 합니다 (`.gitattributes`로 강제).
 - Windows 폴더를 마운트한 설정 파일은 MySQL이 무시하므로, MySQL 설정은 compose의 `command`로 전달합니다.
