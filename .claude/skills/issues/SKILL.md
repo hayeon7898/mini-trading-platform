@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 ## 제목 형식 (공통)
 
-`[TYPE] 제목` — TYPE은 대문자: `FEAT`, `FIX`, `PERF`, `EXP`, `REFACTOR`, `TEST`, `DOCS`, `CHORE`
+`[TYPE] 제목`. TYPE은 대문자: `FEAT`, `FIX`, `PERF`, `EXP`, `REFACTOR`, `TEST`, `DOCS`, `CHORE`
 예: `[FEAT] 주문 접수 API 구현`, `[CHORE] docker-compose 인프라 구성`
 
 라벨은 소문자 type(`feat`, `chore` 등)과 단계(`phase-1`/`phase-2`), 스펙 이슈일 때만 `spec-NN`을 붙인다.
@@ -44,6 +44,7 @@ disable-model-invocation: true
 ## 생성 명령
 
 본문은 `.github/ISSUE_TEMPLATE/task.md` (실험이면 `experiment.md`) 형식을 따른다.
+문장, 목록, 표, 기호는 CLAUDE.md의 "문서 작성 규칙"을 따른다.
 
 ```bash
 gh issue create \

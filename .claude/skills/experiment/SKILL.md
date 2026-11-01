@@ -10,10 +10,11 @@ disable-model-invocation: true
 1. `docs/specs/04-reliability-experiments.md` 에서 $ARGUMENTS 절을 찾아 가설과 방법을 읽는다.
    다른 스펙의 실험이면 해당 스펙에서 찾는다.
 2. 오늘 날짜로 `experiments/results/YYYYMMDD-$ARGUMENTS.md` 를 만든다. 같은 날 같은 실험이 있으면 `-2` 를 붙인다.
-3. 아래 형식으로 작성한다. 가설·조건은 스펙에서 채우고, 결과·해석·조치는 비워 둔다.
+3. 아래 형식으로 작성한다. 가설과 조건은 스펙에서 채우고, 결과와 해석과 조치는 비워 둔다.
+   문장, 목록, 표, 기호는 CLAUDE.md의 "문서 작성 규칙"을 따른다.
 
 ```markdown
-# $ARGUMENTS. <실험 제목> — 장애 재현 실험
+# $ARGUMENTS. <실험 제목> (장애 재현 실험)
 
 ## 가설
 
