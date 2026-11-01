@@ -120,8 +120,8 @@ MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어
  
 | ID | 실험 | 핵심 결과 | 기록 |
 |---|---|---|---|
-| E0 | end-to-end 지연과 FINAL 비용 | 1. 지연은 ClickHouse 묶음 간격이 좌우. <br> 2. 7.5s → 1s로 e2e p95 7.6s → **1.7s**. <br> 3.`FINAL`이 `argMax`보다 4~15배 빠름. | [보기](experiments/results/20261021-E0-e2e-latency/20261021-E0-e2e-latency.md) |
-| E1 | 브로커 장애와 acks·멱등성 | 1. `acks=1` 50k msg/s에서 **291건 유실**, `acks=all` 0건. 2. 멱등성으로 중복·순서 역전 0. <br> 3. 연결 타임아웃 조정으로 쓰기 중단 22.3s → **9.5s**. | [보기](experiments/results/20261021-E1-broker-failure-acks/20261021-E1-broker-failure-acks.md) |
+| E0 | end-to-end 지연과 FINAL 비용 | 1. 지연은 ClickHouse 묶음 간격이 좌우. <br> 2. 7.5s → 1s로 e2e p95 7.6s → **1.7s**. <br> 3. `FINAL`이 `argMax`보다 4~15배 빠름. | [보기](experiments/results/20261021-E0-e2e-latency/20261021-E0-e2e-latency.md) |
+| E1 | 브로커 장애와 acks·멱등성 | 1. `acks=1` 50k msg/s에서 **291건 유실**, `acks=all` 0건. <br> 2. 멱등성으로 중복·순서 역전 0. <br> 3. 연결 타임아웃 조정으로 쓰기 중단 22.3s → **9.5s**. | [보기](experiments/results/20261021-E1-broker-failure-acks/20261021-E1-broker-failure-acks.md) |
 | E2 | Debezium 커넥터 강제 종료와 중복 | 1. kill 시 회당 약 2만 건 재발행, 정합성은 7회 모두 일치 <br> 2. 오프셋 저장 주기·플러그인 경로 조정으로 중복 **−91%**, 복구 82s → **42s** | [보기](experiments/results/20261023-E2-connector-restart-dup/20261023-E2-connector-restart-dup.md) |
 | E4 | 파티션 수와 처리량 한계 | 1. 파티션 3·6·12 모두 21~23만 rows/s로 같음. <br> 2. `kafka_thread_per_consumer=1`로 15.7만 → **23.4만**. <br> 3. 실제 경로 대비 약 100배 여유. | [보기](experiments/results/20261022-E4-partition-throughput/20261022-E4-partition-throughput.md) |
  
