@@ -9,7 +9,7 @@
 #         producer-tool 빌드 (cd experiments/producer-tool && ./gradlew installDist) — lag 샘플러로 사용
 #   환경변수: RATE(80) PRE_DRAIN_SEC(1800) WARMUP_SEC(60) STOP_SEC(stop_min*60, 시험 실행용) RESOLVE_LAG(10000) MAX_CATCHUP_SEC(900)
 #
-# 기록 (raw/rate<RATE>-tpc<tpc>-stop<분>m-r<회차>/)
+# 기록 (raw/rate<RATE>/tpc<tpc>/stop<분, 두 자리>m-r<회차>/, 예: raw/rate80/tpc0/stop05m-r1)
 #   lag.csv     : 1초 간격 lag 원본 (producer-tool lag, Kafka Admin API로 끝 오프셋 - 커밋 오프셋)
 #   samples.csv : 1초 간격 — 시각(ms), 단계, 체결 lag, 주문 lag, ClickHouse MemoryTracking(바이트)
 #   events.log  : 단계 전환 시각
@@ -34,15 +34,17 @@ OPEN_DRAIN_SEC="${OPEN_DRAIN_SEC:-600}"   # 부하 종료 후 열린 주문이 0
 PRE_DRAIN_SEC="${PRE_DRAIN_SEC:-1800}"    # 시작 전 열린 주문이 0이 될 때까지 최대 대기 (앞 회차 상태가 넘어오지 않게)
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-TAG="rate${RATE}-tpc${TPC}-stop${STOP_MIN}m-r${RUN}"   # 부하를 이름에 포함: 조건이 다른 결과가 같은 이름으로 겹치지 않게 (결과 폴더를 옮길 필요 없음)
-OUT="$ROOT/experiments/results/20261028-E3-consumer-catchup/raw/${TAG}"
+# 결과 위치: raw/rate<부하>/tpc<0|1>/stop<분>m-r<회차>. 분은 두 자리로 맞춰 이름순 = 시간순 (stop05m, stop20m)
+STOP_LABEL="$STOP_MIN"; [[ "$STOP_MIN" =~ ^[0-9]+$ ]] && STOP_LABEL="$(printf '%02d' "$STOP_MIN")"
+TAG="rate${RATE}-tpc${TPC}-stop${STOP_LABEL}m-r${RUN}"     # 컨테이너 이름·로그용
+OUT="$ROOT/experiments/results/20261028-E3-consumer-catchup/raw/rate${RATE}/tpc${TPC}/stop${STOP_LABEL}m-r${RUN}"
 K6_NAME="e3-k6-${TAG}"
 LAG_NAME="e3-lag-${TAG}"
 TOOL="$ROOT/experiments/producer-tool/build/install/producer-tool"
 [ -x "$TOOL/bin/producer-tool" ] || { echo "producer-tool 빌드 필요: (cd experiments/producer-tool && ./gradlew installDist)" >&2; exit 1; }
 
 if [ -e "$OUT" ]; then echo "이미 결과가 있음: $OUT" >&2; exit 1; fi
-mkdir -p "$OUT"
+mkdir -p "$OUT"   # 상위 폴더(rate/tpc)까지 함께 생성
 
 ch() { docker exec mts-clickhouse clickhouse-client -q "$1"; }
 now_ms() { date +%s%3N; }
