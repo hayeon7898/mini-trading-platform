@@ -1,0 +1,70 @@
+# ClickHouse 적재 정지 알림 (#54)
+#
+# 조건: 토픽별로 "lag 1만 건 초과" 그리고 "ClickHouse 컨슈머 그룹의 커밋 오프셋이 2분째 그대로"
+#   - lag는 kafka-exporter의 kafka_consumergroup_lag_sum을 쓰지 않고 (토픽 끝 오프셋 - 그룹 커밋 오프셋)으로 직접 계산한다.
+#     lag_sum은 평상시에도 샘플의 약 16%가 빠졌지만, 두 오프셋은 DETACH 중에도 빠짐없이 수집됐다 (#54 1단계 확인).
+#   - lag만 보면 정상적인 따라잡기 중에도 1만을 넘으므로, 커밋이 멈췄을 때만 알린다.
+#     #49에서는 메시지를 계속 읽었지만 커밋이 0번이었다.
+#   - 2분 기준: E3(#43)에서 관측한 정상 회복은 최대 20초 안팎. 2분 동안 커밋이 없으면 정상 회복이 아니다.
+# 알림은 Grafana 화면(대시보드 상단 "알림" 패널, Alerting 메뉴)에 표시한다. 로컬 환경이라 외부 채널은 두지 않는다.
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: clickhouse-ingest
+    folder: MTS
+    interval: 30s
+    rules:
+      - uid: mts-ch-ingest-stalled
+        title: ClickHouse 적재 정지
+        condition: C
+        data:
+          # A: 토픽별 정지 여부 (1 = lag 1만 초과 + 2분간 커밋 변화 없음, 0 = 정상). 항상 값이 나오므로 지표가 끊기면 NoData로 드러난다
+          - refId: A
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: A
+              instant: true
+              expr: >-
+                (
+                  sum by (topic) (kafka_topic_partition_current_offset{topic=~"mts\\.trading\\..+"})
+                  - on (topic)
+                  sum by (topic) (kafka_consumergroup_current_offset_sum{consumergroup=~"clickhouse-.+"})
+                  > bool 10000
+                )
+                * on (topic)
+                (
+                  sum by (topic) (changes(kafka_consumergroup_current_offset_sum{consumergroup=~"clickhouse-.+"}[2m]))
+                  == bool 0
+                )
+          # B: 알림 문구에 넣을 계산된 lag
+          - refId: B
+            relativeTimeRange: { from: 300, to: 0 }
+            datasourceUid: prometheus
+            model:
+              refId: B
+              instant: true
+              expr: >-
+                sum by (topic) (kafka_topic_partition_current_offset{topic=~"mts\\.trading\\..+"})
+                - on (topic)
+                sum by (topic) (kafka_consumergroup_current_offset_sum{consumergroup=~"clickhouse-.+"})
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+        # 조건 자체가 "2분간 커밋 없음"이라, 평가 한 번의 우연을 거르는 정도만 둔다 → 정지 후 약 2분 30초~3분에 발생
+        for: 30s
+        noDataState: NoData        # 오프셋 지표가 끊기면 정상으로 숨기지 않고 별도 상태로 드러낸다
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.topic }} 적재가 멈췄습니다"
+          description: >-
+            {{ $labels.topic }}의 ClickHouse 컨슈머가 2분 넘게 오프셋을 커밋하지 않고, 쌓인 메시지가 {{ $values.B.Value }}건입니다.
+            system.kafka_consumers의 exceptions와 last_commit_time을 확인하세요 (#49 사례: TOO_MANY_PARTS로 같은 위치 재시도).
