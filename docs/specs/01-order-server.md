@@ -80,9 +80,9 @@ CREATE TABLE executions (
 
 ## 완료 기준
 
-- [ ] k6로 500 TPS 주문을 5분간 넣었을 때 에러율 1% 미만
-- [ ] 체결 시뮬레이터가 주문을 중복 체결하지 않음 (`SUM(executions.quantity) = orders.filled_qty` 검증 쿼리 통과)
-- [ ] Prometheus에서 API 지연시간(p95) 확인 가능 (Spring Actuator + Micrometer)
+- [x] k6로 500 TPS 주문을 5분간 넣었을 때 에러율 1% 미만 — 에러율 0% (L1). 단 풀 10에서는 처리량 217/s로 포화 → 풀 30 적용(#45)
+- [x] 체결 시뮬레이터가 주문을 중복 체결하지 않음 (`SUM(executions.quantity) = orders.filled_qty` 검증 쿼리 통과) — `ExecutionConcurrencyTest`
+- [x] Prometheus에서 API 지연시간(p95) 확인 가능 (Spring Actuator + Micrometer) — Grafana "MTS 파이프라인" order-server 패널 (#42)
 
 ## 기록할 것
 

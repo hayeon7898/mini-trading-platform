@@ -86,7 +86,7 @@ WHERE ingested_at > now() - INTERVAL 5 MINUTE;
 
 ## 완료 기준
 
-- [ ] 체결 데이터가 ClickHouse에 실시간 적재됨
-- [ ] MySQL과 ClickHouse(`FINAL` 기준)의 체결 건수·수량 합계 일치
-- [ ] 500 TPS에서 end-to-end 지연 p95 측정값 기록
-- [ ] `FINAL` vs 대안 쿼리 성능 비교 기록
+- [x] 체결 데이터가 ClickHouse에 실시간 적재됨 — E0, E3
+- [x] MySQL과 ClickHouse(`FINAL` 기준)의 체결 건수·수량 합계 일치 — `reconcile-executions.sh` (E2, E3, #49)
+- [x] 500 TPS에서 end-to-end 지연 p95 측정값 기록 — 플러시 1초에서 p95 1,735ms (E0)
+- [x] `FINAL` vs 대안 쿼리 성능 비교 기록 — `FINAL`이 `argMax`보다 4~15배 빠름 (E0)
