@@ -1,0 +1,7 @@
+기준 체결 id: 7768005 (적재 대기 10초)
+source                 | rows       | sum(quantity)
+MySQL                  | 6981585    | 83469542
+ClickHouse FINAL       | 6981585    | 83469542
+ClickHouse (머지 전) | 11535026   | 137687920
+머지 전 중복 행: 4553441
+결과: 일치

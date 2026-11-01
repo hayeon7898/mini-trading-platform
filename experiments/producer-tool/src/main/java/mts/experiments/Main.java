@@ -7,6 +7,7 @@ import java.util.Arrays;
  * <pre>
  *   producer-tool produce --topic T --acks 1|all --idempotence true|false --rate 5000 --duration 60 --out /out
  *   producer-tool verify  --topic T --out /out
+ *   producer-tool lag     --groups g1:topic1,g2:topic2 --out /out/lag.csv   (E3)
  * </pre>
  */
 public final class Main {
@@ -20,6 +21,7 @@ public final class Main {
         switch (argv[0]) {
             case "produce" -> SeqProducer.run(args);
             case "verify" -> Verifier.run(args);
+            case "lag" -> LagSampler.run(args);
             default -> {
                 usage();
                 System.exit(1);
@@ -34,6 +36,7 @@ public final class Main {
                       [--bootstrap host:port,...] [--request-timeout-ms N] [--delivery-timeout-ms N] [--linger-ms N]
                       [--producer-config k=v,k=v] [--format seq|execution] [--key none|id] [--record-each true|false] [--id-offset N]
               verify  --topic T [--out /out] [--bootstrap host:port,...] [--timeout-sec 120]
+              lag     --groups group:topic,... [--interval-ms 1000] [--out /out/lag.csv] [--bootstrap host:port,...]
             """);
     }
 }

@@ -1,0 +1,7 @@
+기준 체결 id: 6754955 (적재 대기 10초)
+source                 | rows       | sum(quantity)
+MySQL                  | 5968535    | 71283441
+ClickHouse FINAL       | 5968535    | 71283441
+ClickHouse (머지 전) | 10521976   | 125501819
+머지 전 중복 행: 4553441
+결과: 일치

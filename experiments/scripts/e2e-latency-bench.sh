@@ -2,6 +2,7 @@
 # DB 커밋 → ClickHouse 적재 end-to-end 지연 (#30). 저장소 루트에서 실행.
 #   bash experiments/scripts/e2e-latency-bench.sh
 #   FLUSH_LIST="7500 1000 500" RATE=500 DURATION=2m bash experiments/scripts/e2e-latency-bench.sh
+#   TPC=0 FLUSH_LIST=1000 ...  → init SQL의 kafka_thread_per_consumer 값을 바꿔 비교 (#43)
 #
 # kafka_flush_interval_ms마다:
 #   1) 체결 큐·MV를 그 값으로 다시 만든다 (executions 테이블과 컨슈머 오프셋은 유지)
@@ -52,12 +53,13 @@ wait_assigned() {
 
 recreate_queue() { # $1=flush ms
   ch_q --multiquery <<< "DROP VIEW IF EXISTS executions_mv; DROP TABLE IF EXISTS kafka_executions_queue;"
-  sed "s/kafka_flush_interval_ms = [0-9]*/kafka_flush_interval_ms = $1/" "$INIT" | ch_q --multiquery
+  sed -e "s/kafka_flush_interval_ms = [0-9]*/kafka_flush_interval_ms = $1/" \
+      -e "s/kafka_thread_per_consumer = [0-9]*/kafka_thread_per_consumer = ${TPC:-1}/" "$INIT" | ch_q --multiquery
   ch_q -q "SELECT engine_full LIKE '%kafka_flush_interval_ms = $1%' FROM system.tables
            WHERE database = 'mts' AND name = 'kafka_executions_queue'" | grep -q 1
 }
 
-SUMMARY="$OUT/${DATE}-E0-summary.txt"
+SUMMARY="$OUT/${DATE}-E0-summary${TPC:+-tpc$TPC}.txt"
 printf '%-6s | %-8s | %-24s | %-24s | %s\n' "flush" "rows" "total p50/p95/p99 (ms)" \
   "DB→Kafka p50/p95/p99" "Kafka→CH p50/p95/p99" | tee "$SUMMARY"
 

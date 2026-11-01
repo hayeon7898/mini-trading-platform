@@ -38,6 +38,9 @@ SETTINGS kafka_broker_list = 'kafka-1:9092,kafka-2:9092,kafka-3:9092',
          kafka_group_name = 'clickhouse-executions',
          kafka_format = 'JSONEachRow',
          kafka_num_consumers = 3,
+         -- 컨슈머마다 스레드 (#43 E3). 기본 0은 스레드 하나가 컨슈머 셋을 돌아가며 처리해, 소비 재개·재생성 시
+         -- 컨슈머가 차례로 합류할 때 두 번째 재조정이 약 16초 지연됐다 (중단 5분 80 TPS: 해소 중앙값 18.2초 → 2.3초).
+         kafka_thread_per_consumer = 1,
          -- 백필 중 컨슈머 3개가 큰 묶음을 동시에 들고 메모리 한도(약 1.8GiB)를 넘어 같은 위치를 재시도하며 멈춤.
          -- 묶음을 줄여 메모리 사용을 낮춘다.
          kafka_max_block_size = 10000,
