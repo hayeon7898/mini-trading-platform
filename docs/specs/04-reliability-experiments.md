@@ -10,6 +10,7 @@
 
 - kafka-exporter: 컨슈머 그룹별·파티션별 lag, ISR 수, Under-replicated partitions
 - Grafana 대시보드(`infra/grafana`): 토픽 유입, 컨슈머 소비 속도, 컨슈머 lag, URP, order-server p95·HikariCP
+- Grafana 알림 "ClickHouse 적재 정지": lag 1만 초과 + 2분간 커밋 없음 (#54, 기준은 E3 결과)
 - 범위에서 뺀 것 (#42)
   - Kafka JMX exporter: URP·ISR은 kafka-exporter로 수집 중이라 제외. 브로커 바이트 처리량·ISR 축소 비율이 필요한 실험이 생기면 추가
   - end-to-end 지연 패널: ClickHouse 데이터소스 플러그인이 필요해 제외. 지연은 `experiments/scripts/e2e-latency-bench.sh`로 측정
