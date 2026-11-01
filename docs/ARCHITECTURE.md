@@ -167,9 +167,15 @@ Kafka 3대 + Connect + ClickHouse는 메모리를 많이 쓴다. Docker에 **최
 
 ### Windows(WSL2) 환경 주의사항
 
+- **레포는 WSL 파일 시스템(`~/mini-trading-platform`)에 둔다.** Windows 드라이브(`/mnt/c/...`)에 두면 파일 접근마다 변환 계층을 거쳐 아래 문제가 생긴다 (#55).
+  - Docker가 마운트했던 폴더를 옮기면 WSL 캐시가 꼬여 `d?????????`로 열리지 않음 (`wsl --shutdown`으로만 복구)
+  - 모든 파일이 `rwxrwxrwx`로 보여 Git이 실행 권한을 기록하지 않음(`core.fileMode=false`) → 스크립트가 실행 권한 없이 커밋됨
+  - `git status`·빌드 등 파일을 많이 읽는 작업이 크게 느림
+- VS Code는 WSL 확장으로 연다 (WSL 터미널에서 `code .`, 또는 `F1` → `WSL: Connect to WSL`). Windows 탐색기에서는 `\\wsl$`로 접근한다.
+- WSL 안의 `gh`·Git은 Windows와 별개다. 처음 한 번 `gh auth login`(HTTPS)과 `git config core.hooksPath .githooks`가 필요하다.
 - 메모리는 Docker Desktop 화면이 아닌 `%UserProfile%\.wslconfig`의 `memory`로 지정한다.
 - 셸 스크립트·설정 파일은 LF 줄바꿈이어야 한다 (`.gitattributes`로 강제). CRLF면 컨테이너에서 `bash\r` 오류.
-- Windows 폴더를 마운트한 설정 파일은 world-writable로 보여 MySQL이 무시한다 → MySQL 설정은 실행 옵션으로 전달.
+- MySQL 설정은 파일 마운트 대신 실행 옵션으로 전달한다. (Windows 폴더에 둘 때 world-writable로 보여 MySQL이 설정 파일을 무시했던 데서 비롯된 방식이며, WSL 파일 시스템에서도 그대로 유지한다.)
 
 ## 9. 상세 설계
 
