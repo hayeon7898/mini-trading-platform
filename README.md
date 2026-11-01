@@ -24,8 +24,8 @@ MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어
 
 | 질문 | 접근 |
 |---|---|
-| DB 저장과 이벤트 발행이 어긋나지 않게 하려면? | 애플리케이션이 DB·Kafka에 각각 쓰는 **dual write 대신 CDC**. 커밋된 변경만 binlog에서 읽어 발행 |
-| 중복 이벤트가 들어와도 결과가 같으려면? | CDC·Kafka 소비는 at-least-once임을 전제로, ClickHouse `ReplacingMergeTree`로 **중복에 안전한 적재** |
+| DB 저장과 이벤트 발행이 어긋나지 않게 하려면? | 1. 애플리케이션이 DB와 Kafka에 각각 쓰는 **dual write 대신 CDC**. <br> 2. 커밋된 변경만 binlog에서 읽어 발행. |
+| 중복 이벤트가 들어와도 결과가 같으려면? | CDC 및 Kafka 소비는 at-least-once임을 전제로, ClickHouse `ReplacingMergeTree`로 **중복에 안전한 적재** |
 | 설정을 바꾸면 실제로 뭐가 달라지나? | `acks`, `min.insync.replicas`, 파티션 수 등을 **같은 조건에서 전/후 수치로 비교** |
 
 ⚠️ 모든 실험은 운영 환경이 아닌 로컬 Docker 환경에서 수행한 **장애 재현 실험**입니다.
@@ -63,11 +63,15 @@ MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어
 | CDC | Debezium MySQL (Kafka Connect) | `3.6.2.Final` | binlog 기반, MySQL 8.4 지원 |
 | 이벤트 버스 | Apache Kafka (KRaft, 3 브로커) | `4.3.1` | ZooKeeper 없는 공식 이미지 |
 | 분석 저장소 | ClickHouse | `26.8.8.8` | 26.8 LTS, Kafka 엔진 내장 |
-| 모니터링 | Prometheus, kafka-exporter, Grafana | `v3.15.0`, `v1.9.0`, `13.2.4` | 대시보드는 파일로 프로비저닝. HikariCP 커넥션 대기·서버 응답 시간(L1), 컨슈머 lag(E4) 등 실험 지표 수집 |
+| 모니터링 | Prometheus, kafka-exporter, Grafana | `v3.15.0`, `v1.9.0`, `13.2.4` | 1. 대시보드는 파일로 프로비저닝. <br> 2. HikariCP 커넥션 대기/서버 응답 시간(L1). <br> 3. 컨슈머 lag(E4) 등 실험 지표 수집. |
 | 부하 테스트 | k6 | | |
 | 확장 | Flink, Spring WebFlux(SSE), Redis | | Phase 2 |
 
-**Kafka 주요 설정**: RF 3 · `min.insync.replicas=2` · 파티션 6 · 토픽 자동 생성 비활성화
+**Kafka 주요 설정**
+1. RF 3
+2. `min.insync.replicas=2`
+3. Partition 개수 = 6
+4. 토픽 자동 생성 비활성화
 
 ---
 
@@ -92,7 +96,7 @@ MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어
 
 **주요 발견**
  
-- `acks=1`에서 리더 장애 시 **ack된 메시지 291건 유실**을 재현했고, `acks=all` + 멱등성으로 15회 모두 유실·중복 0건 (E1)
+- `acks=1`에서 리더 장애 시 **ack된 메시지 291건 유실**을 재현했고, `acks=all`+ 멱등성으로 15회 모두 유실과 중복 0건 (E1)
 - 커넥터 강제 종료로 회당 약 2만 건 중복이 생겨도 MySQL과 ClickHouse `FINAL` 결과가 **7회 모두 일치** (E2)
 - 조회 인덱스 하나로 대형 계좌 p95 **6.83s → 96ms**, 읽는 행 127만 → 20 (Q1)
 - 병목을 수치로 추적: 커넥션 풀(L1) → ClickHouse 적재 간격(E0) → 플러그인 스캔(E2)
@@ -101,25 +105,25 @@ MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어
  
 | ID | 실험 | 핵심 결과 | 기록 |
 |---|---|---|---|
-| L1 | 주문 API 처리량 한계와 커넥션 풀 | 병목은 HikariCP 풀(10). 30으로 늘려 500 TPS에서 처리량 217 → **497/s**, p50 4.16s → **86ms** | [보기](experiments/results/20261019-L1-order-api-capacity/20261019-L1-order-api-capacity.md) |
+| L1 | 주문 API 처리량 한계와 커넥션 풀 | 1. 병목은 HikariCP 풀(10). <br> 2. 30으로 늘려 500 TPS에서 처리량 217 → **497/s**, p50 4.16s → **86ms**. | [보기](experiments/results/20261019-L1-order-api-capacity/20261019-L1-order-api-capacity.md) |
  
 ### 조회 쿼리 개선 · [05-query-optimization](docs/specs/05-query-optimization.md)
  
 | ID | 실험 | 핵심 결과 | 기록 |
 |---|---|---|---|
-| Q0 | 계좌별 주문 내역 조회 기준선 | 100만 행 풀스캔. 결과 3건인 계좌도 약 440ms로, 비용이 결과 수가 아닌 테이블 크기에 비례 | [보기](experiments/results/20261019-Q0-orders-history-baseline/20261019-Q0-orders-history-baseline.md) |
-| Q1 | 인덱스 후보 4개 비교 | `(account_id, created_at)` 채택. 역방향 스캔으로 filesort 제거, 처리량 9.4 → **1,201/s** (127배). 커버링 인덱스는 정렬 순서가 어긋나 오히려 느림 | [보기](experiments/results/20261019-Q1-orders-history-index/20261019-Q1-orders-history-index.md) |
-| W1 | 인덱스 추가의 쓰기 성능 영향 | 쓰기 비용은 실행 간 편차 이내 (407 vs 413/s). 2회만 쟀다면 "12% 하락"으로 오판할 뻔한 것을 재측정으로 배제. 인덱스 DDL은 CDC 이벤트 0건 | [보기](experiments/results/20261019-W1-index-write-impact/20261019-W1-index-write-impact.md) |
-| P1 | OFFSET vs 커서 페이지네이션 | 깊이 40,000에서 OFFSET 195ms vs 커서 **23ms** (8.5배). 커서는 깊이와 무관하게 약 20ms | [보기](experiments/results/20261020-P1-pagination/20261020-P1-pagination.md) |
+| Q0 | 계좌별 주문 내역 조회 기준선 | 1. 100만 행 풀스캔. <br> 2. 결과 3건인 계좌도 약 440ms로, 비용이 결과 수가 아닌 테이블 크기에 비례. | [보기](experiments/results/20261019-Q0-orders-history-baseline/20261019-Q0-orders-history-baseline.md) |
+| Q1 | 인덱스 후보 4개 비교 | 1. `(account_id, created_at)` 채택. <br> 2. 역방향 스캔으로 filesort 제거, 처리량 9.4 → **1,201/s** (127배). <br> 3. 커버링 인덱스는 정렬 순서가 어긋나 오히려 느림. | [보기](experiments/results/20261019-Q1-orders-history-index/20261019-Q1-orders-history-index.md) |
+| W1 | 인덱스 추가의 쓰기 성능 영향 | 1. 쓰기 비용은 실행 간 편차 이내 (407 vs 413/s). <br> 2. 2회만 쟀다면 "12% 하락"으로 오판할 뻔한 것을 재측정으로 배제. <br> 3. 인덱스 DDL은 CDC 이벤트 0건. | [보기](experiments/results/20261019-W1-index-write-impact/20261019-W1-index-write-impact.md) |
+| P1 | OFFSET vs 커서 페이지네이션 | 1. 깊이 40,000에서 OFFSET 195ms vs 커서 **23ms** (8.5배). <br> 2. 커서는 깊이와 무관하게 약 20ms. | [보기](experiments/results/20261020-P1-pagination/20261020-P1-pagination.md) |
  
 ### 파이프라인 신뢰성 · [04-reliability-experiments](docs/specs/04-reliability-experiments.md)
  
 | ID | 실험 | 핵심 결과 | 기록 |
 |---|---|---|---|
-| E0 | end-to-end 지연과 FINAL 비용 | 지연은 ClickHouse 묶음 간격이 좌우. 7.5s → 1s로 e2e p95 7.6s → **1.7s**. `FINAL`이 `argMax`보다 4~15배 빠름 | [보기](experiments/results/20261021-E0-e2e-latency/20261021-E0-e2e-latency.md) |
-| E1 | 브로커 장애와 acks·멱등성 | `acks=1` 50k msg/s에서 **291건 유실**, `acks=all` 0건. 멱등성으로 중복·순서 역전 0. 연결 타임아웃 조정으로 쓰기 중단 22.3s → **9.5s** | [보기](experiments/results/20261021-E1-broker-failure-acks/20261021-E1-broker-failure-acks.md) |
-| E2 | Debezium 커넥터 강제 종료와 중복 | kill 시 회당 약 2만 건 재발행, 정합성은 7회 모두 일치. 오프셋 저장 주기·플러그인 경로 조정으로 중복 **−91%**, 복구 82s → **42s** | [보기](experiments/results/20261023-E2-connector-restart-dup/20261023-E2-connector-restart-dup.md) |
-| E4 | 파티션 수와 처리량 한계 | 파티션 3·6·12 모두 21~23만 rows/s로 같음. `kafka_thread_per_consumer=1`로 15.7만 → **23.4만**. 실제 경로 대비 약 100배 여유 | [보기](experiments/results/20261022-E4-partition-throughput/20261022-E4-partition-throughput.md) |
+| E0 | end-to-end 지연과 FINAL 비용 | 1. 지연은 ClickHouse 묶음 간격이 좌우. 7.5s → 1s로 e2e p95 7.6s → **1.7s**. <br> 2. `FINAL`이 `argMax`보다 4~15배 빠름 | [보기](experiments/results/20261021-E0-e2e-latency/20261021-E0-e2e-latency.md) |
+| E1 | 브로커 장애와 acks·멱등성 | 1. `acks=1` 50k msg/s에서 **291건 유실**, `acks=all` 0건. 2. 멱등성으로 중복·순서 역전 0 <br> 연결 타임아웃 조정으로 쓰기 중단 22.3s → **9.5s**. | [보기](experiments/results/20261021-E1-broker-failure-acks/20261021-E1-broker-failure-acks.md) |
+| E2 | Debezium 커넥터 강제 종료와 중복 | 1. kill 시 회당 약 2만 건 재발행, 정합성은 7회 모두 일치 <br> 2. 오프셋 저장 주기·플러그인 경로 조정으로 중복 **−91%**, 복구 82s → **42s** | [보기](experiments/results/20261023-E2-connector-restart-dup/20261023-E2-connector-restart-dup.md) |
+| E4 | 파티션 수와 처리량 한계 | 1. 파티션 3·6·12 모두 21~23만 rows/s로 같음. <br> 2. `kafka_thread_per_consumer=1`로 15.7만 → **23.4만**. <br> 3. 실제 경로 대비 약 100배 여유. | [보기](experiments/results/20261022-E4-partition-throughput/20261022-E4-partition-throughput.md) |
  
 실험 기록은 `experiments/results/YYYYMMDD-<실험ID>/` 폴더에 **가설 → 조건 → 결과 → 해석 → 조치** 순서로 남깁니다.
 
@@ -150,7 +154,7 @@ docker run --rm -i --network mts_default -v "$PWD/load-test:/scripts" grafana/k6
 | Kafka Connect | http://localhost:8083 |
 | ClickHouse | http://localhost:8123, `localhost:9000` |
 | Prometheus | http://localhost:9090 |
-| Grafana | http://localhost:3000 (admin / `.env`의 `GRAFANA_ADMIN_PASSWORD`) |
+| Grafana | http://localhost:3000 <br> (admin / `.env`의 `GRAFANA_ADMIN_PASSWORD`) |
 
 <details>
 <summary>Windows(WSL2) 사용 시 주의사항</summary>
