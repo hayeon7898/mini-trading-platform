@@ -42,13 +42,13 @@ Kafka 메시지 키를 정해 **어떤 단위로 순서를 보장할지** 결정
 - 인기 종목이 들어간 파티션만 붐비는 핫 파티션이 생기기 쉽다.
 - 종목별 집계(P1)는 같은 종목이 한 곳에 모이면 유리하다.
 
-## 설계 결정 (착수 시 확정)
+## 설계 결정
 
-| 결정 | 선택지 | 초안 |
+| 결정 | 선택지 | 확정 |
 |---|---|---|
 | 운영 키 | 계좌 / 종목 | 계좌 |
 | 키 변경 방식 | 같은 토픽에서 변경 / 새 토픽 | 같은 토픽에서 변경 |
-| 키 변경 구현 | Kafka Connect SMT / Debezium `message.key.columns` | 착수 시 비교 |
+| 키 변경 구현 | Kafka Connect SMT / Debezium `message.key.columns` | `message.key.columns` |
 
 #### 운영 키를 계좌로 두는 이유
 - 쏠림이 적고, 2단계 소비자 두 개(P3, P6)가 요구하는 순서 단위와 같다.
@@ -61,9 +61,16 @@ Kafka 메시지 키를 정해 **어떤 단위로 순서를 보장할지** 결정
 - 지금 소비자인 ClickHouse는 순서와 무관해서 이 섞임이 결과에 영향을 주지 않는다.
 - 새 토픽을 만들면 ClickHouse 큐, 알림 규칙, 대시보드를 모두 옮겨야 한다.
 
-#### 구현 방법은 착수 시 비교하는 이유
-- Kafka Connect의 `ValueToKey`와 `ExtractField` 조합은 범용이지만 설정이 두 단계다.
-- Debezium의 `message.key.columns`는 테이블별로 키 컬럼만 지정하면 되지만, 동작 범위를 확인해야 한다.
+#### `message.key.columns`를 고른 이유
+- 커넥터는 이미 `ExtractNewRecordState`로 봉투를 풀고 있어 `ValueToKey`도 쓸 수 있었다.
+- 하지만 `ExtractNewRecordState`는 삭제 이벤트를 값이 없는 tombstone으로 바꿔, `ValueToKey`로는 키를 만들 수 없다.
+- `message.key.columns`는 `unwrap` 전에 키를 정하므로 tombstone도 같은 계좌 키를 가진다.
+- 테이블별 키 컬럼을 속성 한 줄로 지정해 설정이 단순하다.
+
+#### binlog 위치 필드를 함께 추가한 이유
+- `unwrap`이 `source` 블록을 지워 K1에 필요한 커밋 순서 정보가 없었다.
+- `add.fields`에 `source.file`, `source.pos`, `source.row`를 추가했다.
+- 키 변경과 같은 시점에 넣어 K1 검사 구간에 binlog 위치가 빠진 메시지가 없도록 했다.
 
 ## 실험
 
