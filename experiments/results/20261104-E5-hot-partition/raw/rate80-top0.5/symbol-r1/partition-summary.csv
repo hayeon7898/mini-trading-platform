@@ -1,0 +1,13 @@
+group,partition,consumer,inflow_stop,backlog_at_attach,resolve_sec
+clickhouse-executions,0,c0,7218,8,0.2
+clickhouse-executions,1,c0,53944,41266,1.2
+clickhouse-executions,2,c1,10346,16,0.2
+clickhouse-executions,3,c1,11419,1821,0.2
+clickhouse-executions,4,c2,13593,5939,1.2
+clickhouse-executions,5,c2,4360,2179,1.2
+clickhouse-orders,0,c0,8915,8914,3.2
+clickhouse-orders,1,c0,66681,66610,6.2
+clickhouse-orders,2,c1,12771,12796,5.2
+clickhouse-orders,3,c1,14104,14059,5.2
+clickhouse-orders,4,c2,16802,16916,4.2
+clickhouse-orders,5,c2,5405,5375,3.2

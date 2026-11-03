@@ -1,0 +1,13 @@
+tag=account-r1 rate=80 top1=0.5 stop=300s part_resolve_lag=2000
+토픽 해소 (lag 합계 <= 10000, 체결/주문): 3.3 / 2.3초
+[clickhouse-executions] 유입 최대/평균 1.05, backlog 최대/평균 1.30, 가장 늦은 파티션 해소 3.3초, 미해소 파티션 0
+[clickhouse-executions] 컨슈머 c0 backlog 24263, 해소 3.3초, 처리량 7352건/s
+[clickhouse-executions] 컨슈머 c1 backlog 35824, 해소 3.3초, 처리량 10856건/s
+[clickhouse-executions] 컨슈머 c2 backlog 23948, 해소 2.3초, 처리량 10412건/s
+[clickhouse-orders] 유입 최대/평균 1.05, backlog 최대/평균 1.06, 가장 늦은 파티션 해소 3.3초, 미해소 파티션 0
+[clickhouse-orders] 컨슈머 c0 backlog 42086, 해소 3.3초, 처리량 12753건/s
+[clickhouse-orders] 컨슈머 c1 backlog 44174, 해소 2.3초, 처리량 19206건/s
+[clickhouse-orders] 컨슈머 c2 backlog 41756, 해소 2.3초, 처리량 18155건/s
+MySQL      (orders executions): 4920073 17364703
+ClickHouse (orders executions): 4920073 17364703
+결과: 일치
