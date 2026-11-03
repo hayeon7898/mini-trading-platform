@@ -16,7 +16,8 @@
 #   lag.csv                : 1초 간격 그룹 lag 합계
 #   lag-partitions.csv     : 1초 간격 파티션별 lag
 #   members.csv            : 파티션별 담당 컨슈머 (바뀔 때만)
-#   partition-summary.csv  : 파티션별 담당 컨슈머, 유입량, ATTACH 시 backlog, 해소 시간
+#   attach.txt             : 큐별 ATTACH 직전 시각(ms). 해소 시간은 큐마다 자기 ATTACH 시각 기준
+#   partition-summary.csv  : 파티션별 담당 컨슈머, 유입량, ATTACH 직전 backlog, 해소 시간
 #   events.log, summary.txt, reconcile.txt, k6.log
 #
 # - 부하는 E3와 같은 이유로 80 TPS를 기본으로 한다 (체결 유입은 시뮬레이터 속도로 정해진다).
@@ -123,9 +124,12 @@ sleep "$STOP_SEC"
 
 # --- 재개, 해소까지 대기 -------------------------------------------------------
 bash "$ROOT/experiments/scripts/e5-offsets.sh" "$OUT/offsets-attach.txt" > /dev/null
-ch "ATTACH TABLE mts.kafka_executions_queue"
-ch "ATTACH TABLE mts.kafka_orders_queue"
-ATTACH_MS="$(now_ms)"; event "attached"
+# 두 큐는 순서대로 붙으므로 먼저 붙은 체결 큐가 1~2초 먼저 소비를 시작한다.
+# 해소 시간과 backlog는 큐마다 자기 ATTACH 직전 시각을 기준으로 계산한다.
+ATTACH_EXEC_MS="$(now_ms)"; ch "ATTACH TABLE mts.kafka_executions_queue"
+ATTACH_ORD_MS="$(now_ms)";  ch "ATTACH TABLE mts.kafka_orders_queue"
+printf 'clickhouse-executions,%s\nclickhouse-orders,%s\n' "$ATTACH_EXEC_MS" "$ATTACH_ORD_MS" > "$OUT/attach.txt"
+event "attached exec=$ATTACH_EXEC_MS orders=$ATTACH_ORD_MS"
 
 resolved=""
 deadline=$(( $(date +%s) + MAX_CATCHUP_SEC ))
@@ -165,42 +169,45 @@ chc="$(ch "SELECT (SELECT count() FROM mts.orders FINAL), (SELECT count() FROM m
 } > "$OUT/reconcile.txt"
 
 # --- 파티션별 요약 ------------------------------------------------------------
-# 그룹, 파티션, 담당 컨슈머(클라이언트 번호), 중단 구간 유입량, ATTACH 시 backlog, 해소 시간(초)
-awk -F'[:,]' -v attach="$ATTACH_MS" -v thr="$PART_RESOLVE_LAG" '
+# 그룹, 파티션, 담당 컨슈머(클라이언트 번호), 중단 구간 유입량, ATTACH 직전 backlog, 해소 시간(초)
+# backlog는 그 큐의 ATTACH 직전 마지막 lag 샘플이다 (ATTACH 뒤 첫 샘플은 이미 소비가 시작된 값이다).
+awk -F'[:,]' -v thr="$PART_RESOLVE_LAG" '
   BEGIN {
     topic["clickhouse-executions"] = "mts.trading.executions"
     topic["clickhouse-orders"] = "mts.trading.orders"
   }
+  FILENAME ~ /\/attach\.txt$/ { at[$1] = $2; next }   # offsets-attach.txt와 구분
   FILENAME ~ /offsets-detach/ { d[$1 "," $2] = $3; next }
   FILENAME ~ /offsets-attach/ { inflow[$1 "," $2] = $3 - d[$1 "," $2]; next }
   FILENAME ~ /members/ {
-    if (FNR > 1 && $1 >= attach && $5 != "-" && !(($2 "," $3) in c)) { n = split($5, z, "-"); c[$2 "," $3] = "c" z[n] }
+    if (FNR > 1 && $1 >= at[$2] && $5 != "-" && !(($2 "," $3) in c)) { n = split($5, z, "-"); c[$2 "," $3] = "c" z[n] }
     next
   }
   FILENAME ~ /lag-partitions/ {
-    if (FNR == 1 || $1 < attach) next
+    if (FNR == 1) next
     k = $2 "," $3
-    if (!(k in b)) { b[k] = $6; order[++cnt] = k }
-    if (!(k in r) && $6 >= 0 && $6 <= thr) r[k] = sprintf("%.1f", ($1 - attach) / 1000)
+    if (!(k in seen)) { seen[k] = 1; order[++cnt] = k }
+    if ($1 < at[$2]) { b[k] = $6; next }
+    if (!(k in r) && $6 >= 0 && $6 <= thr) r[k] = sprintf("%.1f", ($1 - at[$2]) / 1000)
     next
   }
   END {
-    print "group,partition,consumer,inflow_stop,backlog_at_attach,resolve_sec"
+    print "group,partition,consumer,inflow_stop,backlog_before_attach,resolve_sec"
     for (i = 1; i <= cnt; i++) {
       k = order[i]; split(k, a, ",")
       print k "," ((k in c) ? c[k] : "-") "," inflow[topic[a[1]] "," a[2]] "," b[k] "," ((k in r) ? r[k] : "-")
     }
-  }' "$OUT/offsets-detach.txt" "$OUT/offsets-attach.txt" "$OUT/members.csv" "$OUT/lag-partitions.csv" \
+  }' "$OUT/attach.txt" "$OUT/offsets-detach.txt" "$OUT/offsets-attach.txt" "$OUT/members.csv" "$OUT/lag-partitions.csv" \
   > "$OUT/partition-summary.csv"
 
 # --- 요약 ------------------------------------------------------------------
 {
   echo "tag=$TAG rate=$RATE top1=$TOP1_RATIO stop=${STOP_SEC}s part_resolve_lag=$PART_RESOLVE_LAG"
-  awk -F, -v attach="$ATTACH_MS" -v thr="$RESOLVE_LAG" '
+  awk -F, -v ae="$ATTACH_EXEC_MS" -v ao="$ATTACH_ORD_MS" -v thr="$RESOLVE_LAG" '
     NR == 1 { next }
-    $1 >= attach {
-      if (re == "" && $2 >= 0 && $2 <= thr) re = sprintf("%.1f", ($1 - attach) / 1000)
-      if (ro == "" && $3 >= 0 && $3 <= thr) ro = sprintf("%.1f", ($1 - attach) / 1000)
+    {
+      if (re == "" && $1 >= ae && $2 >= 0 && $2 <= thr) re = sprintf("%.1f", ($1 - ae) / 1000)
+      if (ro == "" && $1 >= ao && $3 >= 0 && $3 <= thr) ro = sprintf("%.1f", ($1 - ao) / 1000)
     }
     END { printf "토픽 해소 (lag 합계 <= %d, 체결/주문): %s / %s초\n", thr, (re == "" ? "-" : re), (ro == "" ? "-" : ro) }
   ' "$OUT/lag.csv"
