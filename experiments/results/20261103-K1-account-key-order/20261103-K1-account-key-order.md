@@ -80,7 +80,7 @@
 | 비율 | 0.032% | 0.019% |
 
 아래는 확인용 부하(`RATE=100`, `DURATION=30s`)에서 나온 체결 토픽 예시 5건이다.
-본 실험의 예시는 `key-order-mts-trading-executions-id-inversions.csv`에 있다.
+본 실험의 예시는 `raw/key-order-mts-trading-executions-id-inversions.csv`에 있다.
 
 | 계좌 | 늦게 커밋된 `id` | 먼저 커밋된 `id` | `id` 차이 | 커밋 간격 |
 |---|---|---|---|---|
@@ -157,13 +157,16 @@
 
 ## 원본 파일
 
+`raw/` 폴더에 검사 도구의 출력을 그대로 남겼다.
+
 | 파일 | 내용 |
 |---|---|
 | `boundary.txt` | 키 변경 경계 오프셋 |
 | `key-order-mts-trading-executions.txt` | 체결 토픽 검사 요약 |
 | `key-order-mts-trading-orders.txt` | 주문 토픽 검사 요약 |
-| `key-order-*-multi.csv` | 여러 파티션에 나타난 계좌 목록 (변경 후 0건) |
 | `key-order-*-id-inversions.csv` | `id` 역전 예시 (최대 100건) |
+
+- 여러 파티션에 나타난 계좌 목록(`-multi.csv`)은 두 토픽 모두 0건이라 남기지 않았다.
 
 ## 재현 방법
 
@@ -178,7 +181,7 @@ K1_DIR=experiments/results/20261103-K1-account-key-order
 for t in mts.trading.executions mts.trading.orders; do
   docker run --rm --network mts_default \
     -v "$PWD/experiments/producer-tool/build/install/producer-tool:/app" \
-    -v "$PWD/$K1_DIR:/out" \
+    -v "$PWD/$K1_DIR/raw:/out" \
     eclipse-temurin:21.0.12.1_1-jre-noble /app/bin/producer-tool \
     key-order --topic "$t" --boundary /out/boundary.txt --out /out
 done
