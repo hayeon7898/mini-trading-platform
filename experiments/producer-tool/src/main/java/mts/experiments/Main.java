@@ -39,7 +39,7 @@ public final class Main {
                       [--producer-config k=v,k=v] [--format seq|execution] [--key none|id] [--record-each true|false] [--id-offset N]
               verify  --topic T [--out /out] [--bootstrap host:port,...] [--timeout-sec 120]
               lag     --groups group:topic,... [--interval-ms 1000] [--out /out/lag.csv] [--bootstrap host:port,...]
-              key-order --topic T --boundary /out/boundary.txt [--before-sample 500000] [--out /out]
+              key-order --topic T --boundary /out/boundary.txt [--before-sample 500000] [--examples 100] [--out /out]
                       [--bootstrap host:port,...] [--timeout-sec 600]
             """);
     }

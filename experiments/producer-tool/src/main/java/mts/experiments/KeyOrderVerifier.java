@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +29,9 @@ import org.apache.kafka.common.serialization.StringDeserializer;
  *   <li>id_order_inversions        : 생성 이벤트에서 id가 binlog 순서와 반대로 놓인 건수</li>
  * </ul>
  *
+ * id 역전은 앞쪽 --examples 건(기본 100)을 -id-inversions.csv에 예시로 남긴다.
+ * 각 줄은 역전된 메시지와, 그보다 먼저 커밋됐지만 id가 더 큰 메시지를 나란히 보여준다.
+ *
  * 경계 이전 메시지는 binlog 위치 필드가 없어 파티션 분포만 센다.
  * 스냅샷 메시지(__op=r)는 binlog 위치가 모두 같아 순서 검사에서 제외한다.
  *
@@ -42,6 +46,7 @@ final class KeyOrderVerifier {
         Path boundaryFile = Path.of(a.require("boundary"));
         long beforeSample = Long.parseLong(a.get("before-sample", "500000"));
         long timeoutMs = a.getInt("timeout-sec", 600) * 1000L;
+        int exampleLimit = a.getInt("examples", 100);
 
         Map<Integer, Long> boundary = readBoundary(boundaryFile, topic);
 
@@ -59,8 +64,9 @@ final class KeyOrderVerifier {
         // 순서 검사용 마지막 binlog 위치 (file 번호, pos, row)
         Map<Integer, long[]> lastByPartition = new HashMap<>();
         Map<Long, long[]> lastByAccount = new HashMap<>();
-        // 계좌별로 지금까지 본 가장 큰 생성 id
-        Map<Long, Long> maxIdByAccount = new HashMap<>();
+        // 계좌별로 지금까지 본 가장 큰 생성 id와 그 메시지의 위치
+        Map<Long, Seen> maxIdByAccount = new HashMap<>();
+        List<String> idExamples = new ArrayList<>();
 
         long beforeRecords = 0, afterRecords = 0;
         long snapshotRecords = 0, tombstones = 0, unparsed = 0, missingSource = 0;
@@ -154,11 +160,17 @@ final class KeyOrderVerifier {
                         Long id = num(value, "id");
                         if (id != null) {
                             idChecked++;
-                            Long maxId = maxIdByAccount.get(account);
-                            if (maxId != null && id < maxId) {
+                            Long tsMs = num(value, "__source_ts_ms");
+                            Seen seen = new Seen(id, part, r.offset(), file, pos, row,
+                                tsMs == null ? -1 : tsMs);
+                            Seen max = maxIdByAccount.get(account);
+                            if (max != null && id < max.id()) {
                                 idInversions++;
+                                if (idExamples.size() < exampleLimit) {
+                                    idExamples.add(account + "," + seen.csv() + "," + max.csv());
+                                }
                             } else {
-                                maxIdByAccount.put(account, id);
+                                maxIdByAccount.put(account, seen);
                             }
                         }
                     }
@@ -174,6 +186,14 @@ final class KeyOrderVerifier {
                 if (Integer.bitCount(e.getValue()) > 1) {
                     w.write(e.getKey() + "," + partitions(e.getValue()) + "\n");
                 }
+            }
+        }
+
+        try (BufferedWriter w = Files.newBufferedWriter(
+                out.resolve("key-order-" + safeTopic + "-id-inversions.csv"))) {
+            w.write("account_id," + Seen.header("") + "," + Seen.header("max_") + "\n");
+            for (String line : idExamples) {
+                w.write(line + "\n");
             }
         }
 
@@ -194,6 +214,7 @@ final class KeyOrderVerifier {
         s.put("account_order_ties", accountTies);
         s.put("id_checked", idChecked);
         s.put("id_order_inversions", idInversions);
+        s.put("id_inversion_examples", idExamples.size());
         s.put("missing_source_fields", missingSource);
         s.put("tombstones", tombstones);
         s.put("unparsed", unparsed);
@@ -204,6 +225,18 @@ final class KeyOrderVerifier {
             }
         }
         s.forEach((k, v) -> System.out.println(k + "=" + v));
+    }
+
+    /** id 역전 예시 한 쪽에 남길 메시지 정보 */
+    private record Seen(long id, int partition, long offset, String file, long pos, long row, long tsMs) {
+        static String header(String prefix) {
+            return String.join(",", prefix + "id", prefix + "partition", prefix + "offset",
+                prefix + "source_file", prefix + "source_pos", prefix + "source_row", prefix + "source_ts_ms");
+        }
+
+        String csv() {
+            return id + "," + partition + "," + offset + "," + file + "," + pos + "," + row + "," + tsMs;
+        }
     }
 
     /** 앞 위치보다 작으면 음수, 같으면 0. 역전된 값으로는 기준을 바꾸지 않는다. */
