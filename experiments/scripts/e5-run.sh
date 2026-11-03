@@ -17,7 +17,7 @@
 #   lag-partitions.csv     : 1초 간격 파티션별 lag
 #   members.csv            : 파티션별 담당 컨슈머 (바뀔 때만)
 #   attach.txt             : 큐별 ATTACH 직전 시각(ms). 해소 시간은 큐마다 자기 ATTACH 시각 기준
-#   partition-summary.csv  : 파티션별 담당 컨슈머, 유입량, ATTACH 직전 backlog, 해소 시간
+#   partition-summary.csv  : 파티션별 담당 컨슈머, 유입량, ATTACH 직전 backlog, 해소 시간 (e5-summarize.sh)
 #   events.log, summary.txt, reconcile.txt, k6.log
 #
 # - 부하는 E3와 같은 이유로 80 TPS를 기본으로 한다 (체결 유입은 시뮬레이터 속도로 정해진다).
@@ -168,69 +168,7 @@ chc="$(ch "SELECT (SELECT count() FROM mts.orders FINAL), (SELECT count() FROM m
   if [ "$my" = "$chc" ]; then echo "결과: 일치"; else echo "결과: 불일치"; fi
 } > "$OUT/reconcile.txt"
 
-# --- 파티션별 요약 ------------------------------------------------------------
-# 그룹, 파티션, 담당 컨슈머(클라이언트 번호), 중단 구간 유입량, ATTACH 직전 backlog, 해소 시간(초)
-# backlog는 그 큐의 ATTACH 직전 마지막 lag 샘플이다 (ATTACH 뒤 첫 샘플은 이미 소비가 시작된 값이다).
-awk -F'[:,]' -v thr="$PART_RESOLVE_LAG" '
-  BEGIN {
-    topic["clickhouse-executions"] = "mts.trading.executions"
-    topic["clickhouse-orders"] = "mts.trading.orders"
-  }
-  FILENAME ~ /\/attach\.txt$/ { at[$1] = $2; next }   # offsets-attach.txt와 구분
-  FILENAME ~ /offsets-detach/ { d[$1 "," $2] = $3; next }
-  FILENAME ~ /offsets-attach/ { inflow[$1 "," $2] = $3 - d[$1 "," $2]; next }
-  FILENAME ~ /members/ {
-    if (FNR > 1 && $1 >= at[$2] && $5 != "-" && !(($2 "," $3) in c)) { n = split($5, z, "-"); c[$2 "," $3] = "c" z[n] }
-    next
-  }
-  FILENAME ~ /lag-partitions/ {
-    if (FNR == 1) next
-    k = $2 "," $3
-    if (!(k in seen)) { seen[k] = 1; order[++cnt] = k }
-    if ($1 < at[$2]) { b[k] = $6; next }
-    if (!(k in r) && $6 >= 0 && $6 <= thr) r[k] = sprintf("%.1f", ($1 - at[$2]) / 1000)
-    next
-  }
-  END {
-    print "group,partition,consumer,inflow_stop,backlog_before_attach,resolve_sec"
-    for (i = 1; i <= cnt; i++) {
-      k = order[i]; split(k, a, ",")
-      print k "," ((k in c) ? c[k] : "-") "," inflow[topic[a[1]] "," a[2]] "," b[k] "," ((k in r) ? r[k] : "-")
-    }
-  }' "$OUT/attach.txt" "$OUT/offsets-detach.txt" "$OUT/offsets-attach.txt" "$OUT/members.csv" "$OUT/lag-partitions.csv" \
-  > "$OUT/partition-summary.csv"
-
 # --- 요약 ------------------------------------------------------------------
-{
-  echo "tag=$TAG rate=$RATE top1=$TOP1_RATIO stop=${STOP_SEC}s part_resolve_lag=$PART_RESOLVE_LAG"
-  awk -F, -v ae="$ATTACH_EXEC_MS" -v ao="$ATTACH_ORD_MS" -v thr="$RESOLVE_LAG" '
-    NR == 1 { next }
-    {
-      if (re == "" && $1 >= ae && $2 >= 0 && $2 <= thr) re = sprintf("%.1f", ($1 - ae) / 1000)
-      if (ro == "" && $1 >= ao && $3 >= 0 && $3 <= thr) ro = sprintf("%.1f", ($1 - ao) / 1000)
-    }
-    END { printf "토픽 해소 (lag 합계 <= %d, 체결/주문): %s / %s초\n", thr, (re == "" ? "-" : re), (ro == "" ? "-" : ro) }
-  ' "$OUT/lag.csv"
-  awk -F, '
-    NR == 1 { next }
-    {
-      g = $1; n[g]++; si[g] += $4; sb[g] += $5
-      if ($4 > mi[g]) mi[g] = $4
-      if ($5 > mb[g]) mb[g] = $5
-      if ($6 == "-") un[g]++; else if ($6 + 0 > mr[g]) mr[g] = $6 + 0
-      k = g "," $3; cb[k] += $5
-      if ($6 != "-" && $6 + 0 > cr[k]) cr[k] = $6 + 0
-    }
-    END {
-      for (g in n) {
-        printf "[%s] 유입 최대/평균 %.2f, backlog 최대/평균 %.2f, 가장 늦은 파티션 해소 %.1f초, 미해소 파티션 %d\n",
-          g, (si[g] > 0 ? mi[g] / (si[g] / n[g]) : 0), (sb[g] > 0 ? mb[g] / (sb[g] / n[g]) : 0), mr[g], un[g] + 0
-      }
-      for (k in cb) {
-        split(k, a, ",")
-        printf "[%s] 컨슈머 %s backlog %d, 해소 %.1f초, 처리량 %.0f건/s\n",
-          a[1], a[2], cb[k], cr[k], (cr[k] > 0 ? cb[k] / cr[k] : 0)
-      }
-    }' "$OUT/partition-summary.csv" | sort
-  cat "$OUT/reconcile.txt"
-} | tee "$OUT/summary.txt"
+# 이미 끝난 실행도 같은 방식으로 다시 요약할 수 있게 별도 스크립트로 둔다.
+RESOLVE_LAG="$RESOLVE_LAG" PART_RESOLVE_LAG="$PART_RESOLVE_LAG" \
+  bash "$ROOT/experiments/scripts/e5-summarize.sh" "$OUT"
