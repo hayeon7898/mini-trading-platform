@@ -64,7 +64,7 @@ flowchart TD
 | replication.factor | 3 | |
 | min.insync.replicas | 2 | 실험 E1에서 1과 비교 |
 | 파티션 수 | 6 | 실험 E4에서 3/6/12 비교 |
-| 메시지 키 | 테이블 PK (Debezium 기본) | 계좌 단위 순서 보장은 확장 과제 |
+| 메시지 키 | `account_id` | 계좌 단위 순서 보장 (spec #07) |
 | 토픽 자동 생성 | 비활성화 | `scripts/create-topics.sh`로 명시 생성. **커넥터 등록 전에 실행** |
 | Connect 내부 토픽 | RF 3 | `CONNECT_*_STORAGE_REPLICATION_FACTOR`로 지정 (기본 설정 파일은 1) |
 
