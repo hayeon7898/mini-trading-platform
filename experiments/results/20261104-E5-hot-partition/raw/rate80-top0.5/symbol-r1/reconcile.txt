@@ -1,0 +1,3 @@
+MySQL      (orders executions): 4952049 17499870
+ClickHouse (orders executions): 4952049 17499870
+결과: 일치

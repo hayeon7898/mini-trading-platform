@@ -1,0 +1,13 @@
+rate80-top0.5/symbol-r2 part_resolve_lag=2000
+토픽 해소 (lag 합계 <= 10000, 체결/주문): 9.8 / 5.1초
+[clickhouse-executions] 유입 최대/평균 3.19, backlog 최대/평균 3.19
+[clickhouse-executions] 파티션 해소 가장 빠름 5.8초, 가장 늦음 10.8초, 나머지 중앙값 6.8초, 가장 늦음 ÷ 나머지 중앙값 1.59, 미해소 0
+[clickhouse-orders] 파티션 해소 가장 빠름 2.1초, 가장 늦음 6.1초, 나머지 중앙값 3.1초, 가장 늦음 ÷ 나머지 중앙값 1.97, 미해소 0
+[clickhouse-orders] 유입 최대/평균 3.20, backlog 최대/평균 3.19
+[clickhouse-executions] 배정 +4.8초: 컨슈머 1개
+[clickhouse-orders] 배정 +1.1초: 컨슈머 1개
+[clickhouse-executions] 배정 +8.8초: 컨슈머 3개
+[clickhouse-orders] 배정 +4.1초: 컨슈머 3개
+MySQL      (orders executions): 5154423 18358944
+ClickHouse (orders executions): 5154423 18358944
+결과: 일치
