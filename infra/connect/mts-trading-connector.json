@@ -17,7 +17,8 @@
   "value.converter": "org.apache.kafka.connect.json.JsonConverter",
   "key.converter.schemas.enable": "false",
   "value.converter.schemas.enable": "false",
+  "message.key.columns": "trading.orders:account_id;trading.executions:account_id",
   "transforms": "unwrap",
   "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
-  "transforms.unwrap.add.fields": "op,source.ts_ms"
+  "transforms.unwrap.add.fields": "op,source.ts_ms,source.file,source.pos,source.row"
 }
