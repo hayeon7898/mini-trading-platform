@@ -121,7 +121,7 @@ cleanup() {
 trap cleanup EXIT
 
 # --- 부하와 주입 -------------------------------------------------------------
-LOAD_SEC=$(( WARMUP_SEC + OBSERVE_SEC + 60 ))
+LOAD_SEC=$(( WARMUP_SEC + OBSERVE_SEC + 300 ))  # 주입에 1~2분 걸려도 관찰 끝까지 부하 유지
 docker run -d --name "$K6_NAME" --network "$NET" -v "$ROOT/load-test:/scripts" grafana/k6:2.3.0 run --quiet \
   -e RATE="$RATE" -e DURATION="${LOAD_SEC}s" /scripts/orders.js >/dev/null
 event "load started"
