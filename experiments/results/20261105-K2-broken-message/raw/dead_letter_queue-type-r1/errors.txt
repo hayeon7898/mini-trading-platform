@@ -1,0 +1,111 @@
+== 대상 테이블의 표식, 기본값 행 (id = 0 또는 표식 id)
+== system.dead_letter_queue
+Row 1:
+──────
+table_engine:                  Kafka
+event_date:                    2026-11-06
+event_time:                    2026-11-06 10:05:42
+event_time_microseconds:       2026-11-06 10:05:42.070075
+database:                      mts
+table:                         kafka_executions_queue
+error:                         Cannot parse input: expected '"' before: 'abc","executed_at":1793959535204,"__op":"c","__source_ts_ms":1793959535204}': (while reading the value of key quantity): (at row 1)
+
+raw_message:                   {"id":900000002,"order_id":1,"account_id":1,"symbol":"K2TEST","side":"BUY","price":"1.0000","quantity":"abc","executed_at":1793959535204,"__op":"c","__source_ts_ms":1793959535204}
+kafka_topic_name:              mts.trading.executions
+kafka_partition:               0
+kafka_offset:                  5127057 -- 5.13 million
+kafka_key:                     {"account_id":1}
+rabbitmq_exchange_name:        
+rabbitmq_message_id:           
+rabbitmq_message_timestamp:    1970-01-01 00:00:00
+rabbitmq_message_redelivered:  0
+rabbitmq_message_delivery_tag: 0
+rabbitmq_channel_id:           
+
+Row 2:
+──────
+table_engine:                  Kafka
+event_date:                    2026-11-06
+event_time:                    2026-11-06 09:59:02
+event_time_microseconds:       2026-11-06 09:59:02.627531
+database:                      mts
+table:                         kafka_executions_queue
+error:                         Unexpected end of stream while parsing JSONEachRow format: (at row 1)
+
+raw_message:                   {"id":900000001,"order_id":1,"account_id":1,"symbol":"K2TEST","side":"BUY","price":"1.0000","quantity":1,"executed_at":1793959138632
+kafka_topic_name:              mts.trading.executions
+kafka_partition:               0
+kafka_offset:                  5107506 -- 5.11 million
+kafka_key:                     {"account_id":1}
+rabbitmq_exchange_name:        
+rabbitmq_message_id:           
+rabbitmq_message_timestamp:    1970-01-01 00:00:00
+rabbitmq_message_redelivered:  0
+rabbitmq_message_delivery_tag: 0
+rabbitmq_channel_id:           
+
+Row 3:
+──────
+table_engine:                  Kafka
+event_date:                    2026-11-06
+event_time:                    2026-11-06 08:25:32
+event_time_microseconds:       2026-11-06 08:25:32.970510
+database:                      mts
+table:                         kafka_executions_queue
+error:                         Cannot parse input: expected '"' before: 'abc","executed_at":1793952888318,"__op":"c","__source_ts_ms":1793952888318}': (while reading the value of key quantity): (at row 1)
+
+raw_message:                   {"id":900000002,"order_id":1,"account_id":1,"symbol":"K2TEST","side":"BUY","price":"1.0000","quantity":"abc","executed_at":1793952888318,"__op":"c","__source_ts_ms":1793952888318}
+kafka_topic_name:              mts.trading.executions
+kafka_partition:               0
+kafka_offset:                  5037042 -- 5.04 million
+kafka_key:                     {"account_id":1}
+rabbitmq_exchange_name:        
+rabbitmq_message_id:           
+rabbitmq_message_timestamp:    1970-01-01 00:00:00
+rabbitmq_message_redelivered:  0
+rabbitmq_message_delivery_tag: 0
+rabbitmq_channel_id:           
+
+Row 4:
+──────
+table_engine:                  Kafka
+event_date:                    2026-11-04
+event_time:                    2026-11-04 17:00:07
+event_time_microseconds:       2026-11-04 17:00:07.989454
+database:                      mts
+table:                         kafka_executions_queue
+error:                         Unexpected end of stream while parsing JSONEachRow format: (at row 1)
+
+raw_message:                   {"id":900000001,"order_id":1,"account_id":1,"symbol":"K2TEST","side":"BUY","price":"1.0000","quantity":1,"executed_at":1793810999084
+kafka_topic_name:              mts.trading.executions
+kafka_partition:               0
+kafka_offset:                  5015421 -- 5.02 million
+kafka_key:                     {"account_id":1}
+rabbitmq_exchange_name:        
+rabbitmq_message_id:           
+rabbitmq_message_timestamp:    1970-01-01 00:00:00
+rabbitmq_message_redelivered:  0
+rabbitmq_message_delivery_tag: 0
+rabbitmq_channel_id:           
+
+Row 5:
+──────
+table_engine:                  Kafka
+event_date:                    2026-11-04
+event_time:                    2026-11-04 16:48:57
+event_time_microseconds:       2026-11-04 16:48:57.739439
+database:                      mts
+table:                         kafka_executions_queue
+error:                         Cannot parse input: expected '"' before: 'abc","executed_at":1793810377407,"__op":"c","__source_ts_ms":1793810377407}': (while reading the value of key quantity): (at row 1)
+
+raw_message:                   {"id":900000002,"order_id":1,"account_id":1,"symbol":"K2TEST","side":"BUY","price":"1.0000","quantity":"abc","executed_at":1793810377407,"__op":"c","__source_ts_ms":1793810377407}
+kafka_topic_name:              mts.trading.executions
+kafka_partition:               0
+kafka_offset:                  4991593 -- 4.99 million
+kafka_key:                     {"account_id":1}
+rabbitmq_exchange_name:        
+rabbitmq_message_id:           
+rabbitmq_message_timestamp:    1970-01-01 00:00:00
+rabbitmq_message_redelivered:  0
+rabbitmq_message_delivery_tag: 0
+rabbitmq_channel_id:           

@@ -1,0 +1,11 @@
+== 대상 테이블의 표식, 기본값 행 (id = 0 또는 표식 id)
+== mts.k2_execution_errors
+Row 1:
+──────
+received_at: 2026-11-04 16:18:06.761
+topic:       mts.trading.executions
+partition:   0
+offset:      4958911 -- 4.96 million
+raw_message: {"id":900000001,"order_id":1,"account_id":1,"symbol":"K2TEST","side":"BUY","price":"1.0000","quantity":1,"executed_at":1793809076220
+error:       Unexpected end of stream while parsing JSONEachRow format: (at row 1)
+

@@ -1,0 +1,29 @@
+Row 1:
+──────
+consumer_id:                ClickHouse-clickhouse-mts-kafka_executions_queue-0-387f0bf2-d0a4-4d18-bb40-d9df2766ef10
+assignments.partition_id:   [0,1]
+assignments.current_offset: [4964785,5148967]
+last_commit_time:           2026-11-04 16:19:58
+num_commits:                112
+exceptions.time:            []
+exceptions.text:            []
+
+Row 2:
+──────
+consumer_id:                ClickHouse-clickhouse-mts-kafka_executions_queue-1-0af28f88-9aad-4e16-9fc1-6eb40b2602e8
+assignments.partition_id:   [2,3]
+assignments.current_offset: [4886666,4962896]
+last_commit_time:           2026-11-04 16:19:57
+num_commits:                112
+exceptions.time:            []
+exceptions.text:            []
+
+Row 3:
+──────
+consumer_id:                ClickHouse-clickhouse-mts-kafka_executions_queue-2-dbbbf63b-34fc-4848-a2a2-7fbc6e53e8d9
+assignments.partition_id:   [4,5]
+assignments.current_offset: [4937186,4836940]
+last_commit_time:           2026-11-04 16:19:58
+num_commits:                112
+exceptions.time:            []
+exceptions.text:            []

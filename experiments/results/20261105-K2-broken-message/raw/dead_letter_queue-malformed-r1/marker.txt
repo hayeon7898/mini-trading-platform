@@ -1,0 +1,5 @@
+case=malformed
+marker_id=900000001
+inject_ms=1793959142902
+partition=0
+offset=5107506
