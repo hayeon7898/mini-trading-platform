@@ -1,8 +1,8 @@
 # Mini Trading Platform
-
+ 
 MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어지는 실시간 파이프라인을 만들고,
 **브로커 장애·재시작·부하 상황을 직접 재현해 정합성과 성능을 수치로 검증**하는 프로젝트입니다.
-
+ 
 ![Java](https://img.shields.io/badge/Java-21-007396?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3-6DB33F?logo=springboot&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-8.4.8-4479A1?logo=mysql&logoColor=white)
@@ -12,50 +12,47 @@ MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어
 ![Prometheus](https://img.shields.io/badge/Prometheus-E6522C?logo=prometheus&logoColor=white)
 ![Grafana](https://img.shields.io/badge/Grafana-13.2-F46800?logo=grafana&logoColor=white)
 ![k6](https://img.shields.io/badge/k6-7D64FF?logo=k6&logoColor=white)
-
----
-
+ 
+ 
 ## ❔ 왜 이 프로젝트를 했나
-
+ 
 증권 시스템에서 "주문이 DB에는 있는데 분석 시스템에는 없다"거나 "같은 체결이 두 번 집계됐다"는 건 곧 돈 문제입니다.
 그래서 **데이터가 여러 시스템을 거쳐도 어긋나지 않는 구조**를 직접 만들고, 그 구조가 장애 상황에서도 정말 버티는지 숫자로 확인해 보고 싶었습니다.
-
-이 프로젝트에서 답하려는 질문은 세 가지입니다.
-
+ 
+이 프로젝트에서 답하려는 질문은 다섯 가지입니다.
+ 
 | 질문 | 접근 |
 |---|---|
 | DB 저장과 이벤트 발행이 어긋나지 않게 하려면? | 1. 애플리케이션이 DB와 Kafka에 각각 쓰는 **dual write 대신 CDC**. <br> 2. 커밋된 변경만 binlog에서 읽어 발행. |
 | 중복 이벤트가 들어와도 결과가 같으려면? | CDC 및 Kafka 소비는 at-least-once임을 전제로, ClickHouse `ReplacingMergeTree`로 **중복에 안전한 적재** |
 | 설정을 바꾸면 실제로 뭐가 달라지나? | `acks`, `min.insync.replicas`, 파티션 수 등을 **같은 조건에서 전/후 수치로 비교** |
-
+| 한 계좌의 이벤트를 일어난 순서대로 받으려면? | 메시지 키를 **계좌 ID**로 바꿔 한 계좌를 한 파티션에 모으고, 순서는 `id`가 아닌 **binlog 위치**로 검증 |
+| 깨진 메시지 하나가 적재를 멈추지 않게 하려면? | ClickHouse **dead letter queue**로 건너뛰며 원본과 키를 보관하고, 같은 키로 재처리 |
+ 
 ⚠️ 모든 실험은 운영 환경이 아닌 로컬 Docker 환경에서 수행한 **장애 재현 실험**입니다.
-
----
-
+ 
+ 
 ## 🐟 아키텍처
-
+ 
 <img width="1000" height="800" alt="mtp-Arch" src="https://github.com/user-attachments/assets/3bb17fc0-ed41-46dd-988c-7569782b0813" />
-
-
-
-
-
+ 
+ 
+ 
+ 
 **주문 1건의 흐름**
-
+ 
 1. k6가 `POST /orders`로 주문 요청
 2. 주문 서버가 `orders`에 `ACCEPTED`로 저장 → 체결 시뮬레이터가 `executions` 생성
-3. Debezium이 binlog를 읽어 `mts.trading.orders`, `mts.trading.executions` 토픽에 발행
-4. ClickHouse Kafka 엔진이 소비 → Materialized View가 `ReplacingMergeTree`에 적재
+3. Debezium이 binlog를 읽어 `mts.trading.orders`, `mts.trading.executions` 토픽에 계좌 ID를 키로 발행
+4. ClickHouse Kafka 엔진이 소비 → Materialized View가 `ReplacingMergeTree`에 적재 (파싱하지 못한 메시지는 `system.dead_letter_queue`로)
 5. 종목별 거래대금 등 분석 쿼리를 ClickHouse에서 조회
-
 자세한 설계는 👉 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
-
----
-
+ 
+ 
 ## 🛠️ 기술 스택
-
+ 
 모든 이미지는 정확한 버전으로 고정합니다 (`latest` 금지).
-
+ 
 | 영역 | 기술 | 버전 | 선택 이유 |
 |---|---|---|---|
 | 주문 서버 | Java, Spring Boot, JPA | 21 / 3.x | |
@@ -63,22 +60,22 @@ MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어
 | CDC | Debezium MySQL (Kafka Connect) | `3.6.2.Final` | binlog 기반, MySQL 8.4 지원 |
 | 이벤트 버스 | Apache Kafka (KRaft, 3 브로커) | `4.3.1` | ZooKeeper 없는 공식 이미지 |
 | 분석 저장소 | ClickHouse | `26.8.8.8` | 26.8 LTS, Kafka 엔진 내장 |
-| 모니터링 | Prometheus, kafka-exporter, Grafana | `v3.15.0`, `v1.9.0`, `13.2.4` | 1. 대시보드는 파일로 프로비저닝. <br> 2. HikariCP 커넥션 대기/서버 응답 시간(L1). <br> 3. 컨슈머 lag(E4) 등 실험 지표 수집. |
+| 모니터링 | Prometheus, kafka-exporter, Grafana | `v3.15.0`, `v1.9.0`, `13.2.4` | 1. 대시보드와 알림은 파일로 프로비저닝. <br> 2. HikariCP 커넥션 대기/서버 응답 시간(L1). <br> 3. 컨슈머 lag(E4) 등 실험 지표 수집. <br> 4. 파티션 단위 적재 정지, DLQ 유입 알림(K2). |
 | 부하 테스트 | k6 | | |
 | 확장 | Flink, Spring WebFlux(SSE), Redis | | Phase 2 |
-
+ 
 **Kafka 주요 설정**
 1. RF 3
 2. `min.insync.replicas=2`
 3. Partition 개수 = 6
 4. 토픽 자동 생성 비활성화
+5. 메시지 키 = `account_id` (계좌 단위 순서 보장)
 
----
-
+ 
 ## ✅ 기능별 스펙 & 이슈
-
+ 
 각 스펙의 "완료 기준"이 작업 단위이며, 스펙 하나가 GitHub 마일스톤 하나에 대응합니다. 마일스톤 링크에서 관련 이슈와 진행률을 볼 수 있습니다.
-
+ 
 | # | 기능 | 스펙 | 이슈 | 상태 |
 |---|---|---|---|---|
 | 01 | 주문·체결 API, 체결 시뮬레이터, 부하 생성 | [01-order-server](docs/specs/01-order-server.md) | [M1](../../milestone/1) | ✅ |
@@ -86,21 +83,22 @@ MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어
 | 03 | Kafka → ClickHouse 실시간 적재, 중복 처리 | [03-clickhouse-sink](docs/specs/03-clickhouse-sink.md) | [M3](../../milestone/3) | ✅ |
 | 04 | 장애·부하 재현 실험 | [04-reliability-experiments](docs/specs/04-reliability-experiments.md) | [M4](../../milestone/4) | ✅ |
 | 05 | 주문 내역 조회 쿼리 개선 | [05-query-optimization](docs/specs/05-query-optimization.md) | [M5](../../milestone/5) | ✅ |
-| 06 | 확장 과제 (Flink, SSE, Redis) | [06-phase2-backlog](docs/specs/06-phase2-backlog.md) | [M6](../../milestone/6) | ⬜ |
-
+| 06 | 확장 과제 목록 (각 과제는 07부터 별도 스펙) | [06-phase2-backlog](docs/specs/06-phase2-backlog.md) | [M6](../../milestone/6) | 🟨 |
+| 07 | 메시지 키 재설계, 핫 파티션, 깨진 메시지 처리 (P2) | [07-message-key](docs/specs/07-message-key.md) | [M7](../../milestone/7) | ✅ |
+ 
 <sub>상태: ⬜ 예정 · 🟨 진행 중 · ✅ 완료</sub>
 
----
-
+ 
 ## 🔎 실험 & 결과
-
+ 
 **주요 발견**
  
 - `acks=1`에서 리더 장애 시 **ack된 메시지 291건 유실**을 재현했고, `acks=all`+ 멱등성으로 15회 모두 유실과 중복 0건 (E1)
 - 커넥터 강제 종료로 회당 약 2만 건 중복이 생겨도 MySQL과 ClickHouse `FINAL` 결과가 **7회 모두 일치** (E2)
 - 조회 인덱스 하나로 대형 계좌 p95 **6.83s → 96ms**, 읽는 행 127만 → 20 (Q1)
 - 병목을 수치로 추적: 커넥션 풀(L1) → ClickHouse 적재 간격(E0) → 플러그인 스캔(E2)
-
+- 깨진 메시지 한 건이 컨슈머 하나만 멈추는 **부분 정지**를 재현했고, 토픽 합계 알림은 부하 중 이를 한 번도 잡지 못해 파티션 단위 알림과 DLQ로 바꿈 (K2)
+- 계좌 키로 바꾼 뒤 약 107만 건에서 계좌 분산과 순서 역전 **0건**, 반면 `id` 정렬은 커밋 순서를 일부 뒤집음 (K1)
 ### 주문 API 성능 · [01-order-server](docs/specs/01-order-server.md)
  
 | ID | 실험 | 핵심 결과 | 기록 |
@@ -125,27 +123,34 @@ MySQL 원장 DB → Debezium CDC → Kafka(3 브로커) → ClickHouse로 이어
 | E2 | Debezium 커넥터 강제 종료와 중복 | 1. kill 시 회당 약 2만 건 재발행, 정합성은 7회 모두 일치 <br> 2. 오프셋 저장 주기·플러그인 경로 조정으로 중복 **−91%**, 복구 82s → **42s** | [보기](experiments/results/20261023-E2-connector-restart-dup/20261023-E2-connector-restart-dup.md) |
 | E4 | 파티션 수와 처리량 한계 | 1. 파티션 3·6·12 모두 21~23만 rows/s로 같음. <br> 2. `kafka_thread_per_consumer=1`로 15.7만 → **23.4만**. <br> 3. 실제 경로 대비 약 100배 여유. | [보기](experiments/results/20261022-E4-partition-throughput/20261022-E4-partition-throughput.md) |
  
+### 메시지 키와 깨진 메시지 · [07-message-key](docs/specs/07-message-key.md)
+ 
+| ID | 실험 | 핵심 결과 | 기록 |
+|---|---|---|---|
+| K1 | 계좌 키 순서 보장 검증 | 1. 약 107만 건에서 여러 파티션에 나타난 계좌와 순서 역전 **0건**. <br> 2. `id` 순서는 체결 0.032%가 커밋 순서와 달라, 순서는 binlog 위치로 판정. | [보기](experiments/results/20261103-K1-account-key-order/20261103-K1-account-key-order.md) |
+| E5 | 핫 파티션 | 1. 종목 키에서 한 파티션이 유입의 **53%** (최대/평균 3.2, 계좌 키 1.02). <br> 2. 쏠린 파티션이 항상 마지막에 해소되어 토픽 해소를 묶음 (나머지 중앙값의 1.6~2.0배). | [보기](experiments/results/20261104-E5-hot-partition/20261104-E5-hot-partition.md) |
+| K2 | 깨진 메시지와 적재 정지 | 1. 깨진 메시지 1건에 해당 컨슈머만 멈추는 부분 정지, 토픽 합계 알림은 부하 중 **0회** 감지. <br> 2. 거름 조건 없는 `stream` 모드도 똑같이 멈춤. <br> 3. DLQ 모드와 파티션 단위 알림으로 바꾸고, 재처리로 정합성 복구. | [보기](experiments/results/20261105-K2-broken-message/20261105-K2-broken-message.md) |
+ 
 실험 기록은 `experiments/results/YYYYMMDD-<실험ID>/` 폴더에 **가설 → 조건 → 결과 → 해석 → 조치** 순서로 남깁니다.
-
-
-
----
-
+ 
+ 
+ 
+ 
 ## 🚀 빠른 시작
-
+ 
 **요구 사항**: Docker (메모리 **8GB 이상** 할당 권장)
-
+ 
 ```bash
 cp .env.example .env          # 비밀번호 설정
 docker compose up -d --wait   # 전체 스택 기동 (order-server 포함, 모든 컨테이너 healthy까지 대기)
 ./scripts/create-topics.sh    # 토픽 생성 (커넥터 등록 전에 실행)
 ./infra/connect/register.sh   # Debezium 커넥터 등록
-
+ 
 # 주문 부하 (200 TPS, 2분)
 docker run --rm -i --network mts_default -v "$PWD/load-test:/scripts" grafana/k6:2.3.0 run \
   -e RATE=200 -e DURATION=2m /scripts/orders.js
 ```
-
+ 
 | 서비스 | 호스트 접속 주소 |
 |---|---|
 | 주문 서버 | http://localhost:8080 |
@@ -155,36 +160,37 @@ docker run --rm -i --network mts_default -v "$PWD/load-test:/scripts" grafana/k6
 | ClickHouse | http://localhost:8123, `localhost:9000` |
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3000 <br> (admin / `.env`의 `GRAFANA_ADMIN_PASSWORD`) |
-
+ 
+**깨진 메시지 재처리**: ClickHouse가 파싱하지 못한 메시지는 `system.dead_letter_queue`에 남고 Grafana에 "ClickHouse DLQ 유입" 알림이 뜹니다.
+`scripts/clickhouse-dlq-reprocess.sh`로 꺼내 고친 뒤 같은 키로 다시 넣습니다 ([07 스펙 K2](docs/specs/07-message-key.md)).
+ 
 <details>
 <summary>Windows(WSL2) 사용 시 주의사항</summary>
-
 - 레포는 Windows 드라이브(`/mnt/c`)가 아닌 **WSL 홈(`~/`)에 클론**합니다. VS Code는 WSL 확장으로 엽니다. 자세한 이유는 [ARCHITECTURE 8절](docs/ARCHITECTURE.md).
 - 메모리는 Docker Desktop 화면이 아닌 `%UserProfile%\.wslconfig`의 `memory`로 지정합니다.
 - 셸 스크립트·설정 파일은 LF 줄바꿈이어야 합니다 (`.gitattributes`로 강제).
 - Windows 폴더를 마운트한 설정 파일은 MySQL이 무시하므로, MySQL 설정은 compose의 `command`로 전달합니다.
-
+- 설정 파일 하나를 마운트할 때는 **파일을 먼저 두고** 마운트를 추가합니다. 파일이 없으면 Docker가 같은 이름의 빈 폴더를 `root` 소유로 만듭니다.
+- Docker Desktop이 재시작된 뒤 설정이 비어 보이면(예: Grafana 대시보드가 사라짐) 해당 컨테이너만 `docker compose up -d --force-recreate --no-deps <서비스>`로 다시 만듭니다.
 </details>
-
----
-
+ 
+ 
 ## 📁 디렉토리 구조
-
+ 
 ```
 mini-trading-platform/
 ├── docker-compose.yml
 ├── infra/            # mysql, connect, clickhouse, prometheus, grafana 설정
 ├── order-server/     # Spring Boot 주문 서버
 ├── load-test/        # k6 스크립트
-├── scripts/          # 토픽 생성 등 운영 스크립트
+├── scripts/          # 토픽 생성, ClickHouse 큐 반영, DLQ 재처리 등 운영 스크립트
 ├── experiments/      # 실험 도구, 장애 주입 스크립트, 결과 기록
 └── docs/             # ARCHITECTURE.md, specs/
 ```
-
----
-
+ 
+ 
 ## ✏️ 개발 규칙
-
+ 
 - 이슈 → 브랜치 → 커밋 → PR 순서로 작업하며, main에 직접 커밋하지 않습니다.
 - 커밋 메시지: `<type>(<scope>): <요약> (#이슈번호)` — 예: `feat(cdc): Debezium 커넥터 등록 (#12)`
 - CI: `order-server` 빌드·테스트, `infra` 설정 검사(shellcheck, compose config), `commit-lint` 컨벤션 검사
