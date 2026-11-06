@@ -14,3 +14,8 @@ scrape_configs:
     scrape_timeout: 5s
     static_configs:
       - targets: ["kafka-exporter:9308"]
+  
+  # ClickHouse 내장 지표. Kafka 파싱 실패(KafkaMessagesFailed)로 DLQ 유입을 알린다 (#66)
+  - job_name: clickhouse
+    static_configs:
+      - targets: ["mts-clickhouse:9363"]

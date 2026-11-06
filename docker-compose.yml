@@ -313,6 +313,7 @@ services:
       # 스펙 03의 Kafka 엔진·MV·타깃 테이블 SQL을 여기에 추가 (볼륨이 비었을 때 1회 실행)
       - ./infra/clickhouse/init:/docker-entrypoint-initdb.d:ro
       - ./infra/clickhouse/config.d/dead-letter-queue.xml:/etc/clickhouse-server/config.d/dead-letter-queue.xml:ro
+      - ./infra/clickhouse/config.d/prometheus.xml:/etc/clickhouse-server/config.d/prometheus.xml:ro
     ulimits:
       nofile:             # 공식 권장값: 컬럼별로 파일을 다루므로 파일 핸들을 많이 씀
         soft: 262144

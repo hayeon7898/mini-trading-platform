@@ -1,0 +1,15 @@
+<!--
+  ClickHouse 내장 Prometheus 엔드포인트 (#66).
+  Kafka 엔진의 파싱 실패 수(ProfileEvents KafkaMessagesFailed)로 dead letter queue 유입을 알리기 위해 켠다.
+  system.metrics, system.events, system.asynchronous_metrics를 http://<호스트>:9363/metrics로 내보낸다.
+  compose 네트워크 안에서만 수집하므로 호스트 포트는 열지 않는다.
+-->
+<clickhouse>
+    <prometheus>
+        <endpoint>/metrics</endpoint>
+        <port>9363</port>
+        <metrics>true</metrics>
+        <events>true</events>
+        <asynchronous_metrics>true</asynchronous_metrics>
+    </prometheus>
+</clickhouse>
