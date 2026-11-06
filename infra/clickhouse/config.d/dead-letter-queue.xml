@@ -1,0 +1,16 @@
+<!--
+  Kafka 엔진의 kafka_handle_error_mode = 'dead_letter_queue'가 쓰는 시스템 로그 테이블 (#65 K2).
+  이 설정이 없으면 그 모드로 Kafka 테이블을 만들 때
+  "The table system.dead_letter_queue is not configured on the server" (BAD_ARGUMENTS)로 거부된다 (ClickHouse 26.8).
+  다른 시스템 로그 테이블(query_log 등)처럼 첫 기록이 생길 때 테이블이 만들어진다.
+-->
+<clickhouse>
+    <dead_letter_queue>
+        <database>system</database>
+        <table>dead_letter_queue</table>
+        <partition_by>toYYYYMM(event_date)</partition_by>
+        <!-- 깨진 메시지는 드물게 생기므로 30일 보관하고 지운다 -->
+        <ttl>event_date + INTERVAL 30 DAY DELETE</ttl>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+    </dead_letter_queue>
+</clickhouse>

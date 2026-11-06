@@ -1,0 +1,21 @@
+== 대상 테이블의 표식, 기본값 행 (id = 0 또는 표식 id)
+== mts.k2_execution_errors
+Row 1:
+──────
+received_at: 2026-11-06 08:26:55.124
+topic:       mts.trading.executions
+partition:   0
+offset:      5060223 -- 5.06 million
+raw_message: {"id":900000001,"order_id":1,"account_id":1,"symbol":"K2TEST","side":"BUY","price":"1.0000","quantity":1,"executed_at":1793953604155
+error:       Unexpected end of stream while parsing JSONEachRow format: (at row 1)
+
+
+Row 2:
+──────
+received_at: 2026-11-06 09:51:25.797
+topic:       mts.trading.executions
+partition:   0
+offset:      5084188 -- 5.08 million
+raw_message: {"id":900000002,"order_id":1,"account_id":1,"symbol":"K2TEST","side":"BUY","price":"1.0000","quantity":"abc","executed_at":1793958680609,"__op":"c","__source_ts_ms":1793958680609}
+error:       Cannot parse input: expected '"' before: 'abc","executed_at":1793958680609,"__op":"c","__source_ts_ms":1793958680609}': (while reading the value of key quantity): (at row 1)
+
