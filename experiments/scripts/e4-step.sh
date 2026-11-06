@@ -38,7 +38,7 @@ mkdir -p "$OUT"
 
 now_ms() { date +%s%3N; }
 log() { echo "[$(date -u +%H:%M:%S.%3N)] $*" | tee -a "$OUT/run.log"; }
-ch() { docker exec mts-clickhouse clickhouse-client -n -q "$1"; }
+ch() { docker exec mts-clickhouse sh -c 'clickhouse-client --user "${CLICKHOUSE_USER:-default}" --password "$CLICKHOUSE_PASSWORD" "$@"' sh -n -q "$1"; }
 
 "${KT[@]}" --create --topic "$TOPIC" --partitions "$P" --replication-factor 3 >/dev/null
 log "tag=$TAG topic=$TOPIC group=$GROUP rates=[$RATES] step_sec=$STEP_SEC"

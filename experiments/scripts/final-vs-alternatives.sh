@@ -10,7 +10,7 @@ DATE=$(date +%Y%m%d)
 OUT="${OUT:-experiments/results/${DATE}-E0-e2e-latency}/raw"
 mkdir -p "$OUT"
 
-ch() { docker exec -i mts-clickhouse clickhouse-client -d mts "$@"; }
+ch() { docker exec -i mts-clickhouse sh -c 'clickhouse-client --user "${CLICKHOUSE_USER:-default}" --password "$CLICKHOUSE_PASSWORD" "$@"' sh -d mts "$@"; }
 
 # 이름|쿼리
 QUERIES=(

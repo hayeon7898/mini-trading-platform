@@ -25,7 +25,7 @@ mysql_q() {
   docker exec -i mts-mysql sh -c 'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql -uroot trading -N'
 }
 ch_q() {
-  docker exec -i mts-clickhouse clickhouse-client -d mts "$@"
+  docker exec -i mts-clickhouse sh -c 'clickhouse-client --user "${CLICKHOUSE_USER:-default}" --password "$CLICKHOUSE_PASSWORD" "$@"' sh -d mts "$@"
 }
 
 wait_idle() {

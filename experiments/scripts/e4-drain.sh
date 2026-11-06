@@ -33,7 +33,7 @@ mkdir -p "$OUT"
 
 now_ms() { date +%s%3N; }
 log() { echo "[$(date -u +%H:%M:%S.%3N)] $*" | tee -a "$OUT/run.log"; }
-ch() { docker exec mts-clickhouse clickhouse-client -n -q "$1"; }
+ch() { docker exec mts-clickhouse sh -c 'clickhouse-client --user "${CLICKHOUSE_USER:-default}" --password "$CLICKHOUSE_PASSWORD" "$@"' sh -n -q "$1"; }
 
 N="$(docker exec mts-kafka-1 /opt/kafka/bin/kafka-get-offsets.sh --bootstrap-server kafka-1:9092 \
   --topic "$TOPIC" | awk -F: '{s += $3} END {print s}')"

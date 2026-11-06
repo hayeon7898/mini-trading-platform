@@ -16,7 +16,7 @@ if [ "$#" -ne 1 ] || [[ ! "$1" =~ ^[01]$ ]]; then
 fi
 TPC="$1"
 
-ch() { docker exec -i mts-clickhouse clickhouse-client --multiquery "$@"; }
+ch() { docker exec -i mts-clickhouse sh -c 'clickhouse-client --user "${CLICKHOUSE_USER:-default}" --password "$CLICKHOUSE_PASSWORD" "$@"' sh --multiquery "$@"; }
 
 for pair in "kafka_executions_queue:executions_mv" "kafka_orders_queue:orders_mv"; do
   queue="${pair%%:*}"
