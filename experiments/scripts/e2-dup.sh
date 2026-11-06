@@ -15,7 +15,7 @@ fi
 OUT="$1"
 GROUP="e2-dup-$(basename "$OUT")-$(date +%s)"
 
-ch() { docker exec mts-clickhouse clickhouse-client -n -q "$1"; }
+ch() { docker exec mts-clickhouse sh -c 'clickhouse-client --user "${CLICKHOUSE_USER:-default}" --password "$CLICKHOUSE_PASSWORD" "$@"' sh -n -q "$1"; }
 log() { echo "[$(date -u +%H:%M:%S)] $*"; }
 
 # 실험 구간: 토픽·파티션별 [시작, 끝) 오프셋 (토픽#파티션:시작:끝)

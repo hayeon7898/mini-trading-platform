@@ -46,7 +46,7 @@ TOOL="$ROOT/experiments/producer-tool/build/install/producer-tool"
 if [ -e "$OUT" ]; then echo "이미 결과가 있음: $OUT" >&2; exit 1; fi
 mkdir -p "$OUT"   # 상위 폴더(rate/tpc)까지 함께 생성
 
-ch() { docker exec mts-clickhouse clickhouse-client -q "$1"; }
+ch() { docker exec mts-clickhouse sh -c 'clickhouse-client --user "${CLICKHOUSE_USER:-default}" --password "$CLICKHOUSE_PASSWORD" "$@"' sh -q "$1"; }
 now_ms() { date +%s%3N; }
 event() { echo "$(now_ms) $*" | tee -a "$OUT/events.log"; }
 
