@@ -1,12 +1,12 @@
 # ClickHouse dead letter queue 유입 알림 (#66)
 #
-# 조건: 최근 5분 동안 Kafka 엔진이 파싱하지 못한 메시지가 한 건이라도 있음
+# 조건: 최근 30분 동안 Kafka 엔진이 파싱하지 못한 메시지가 한 건이라도 있음
 #   - Kafka 큐는 kafka_handle_error_mode = dead_letter_queue라, 깨진 메시지는 적재를 멈추지 않고
 #     system.dead_letter_queue로 빠진다 (#65 K2). 적재 정지 알림으로는 보이지 않으므로 따로 알린다.
 #   - 지표는 ClickHouse ProfileEvents의 KafkaMessagesFailed (서버 시작 후 누적값)이다.
 #     서버 전체 값이라 어느 큐에서 생겼는지는 system.dead_letter_queue의 database, table로 확인한다.
 #   - 재시작으로 누적값이 0으로 돌아가도 increase가 처리한다.
-# 알림은 Grafana 화면에 표시한다. 깨진 메시지가 더 들어오지 않으면 5분 뒤 정상으로 돌아온다.
+# 알림은 Grafana 화면에 표시한다. 깨진 메시지가 더 들어오지 않으면 30분 뒤 정상으로 돌아온다.
 apiVersion: 1
 
 groups:
@@ -19,15 +19,15 @@ groups:
         title: ClickHouse DLQ 유입
         condition: C
         data:
-          # A: 최근 5분 파싱 실패 수
+          # A: 최근 30분 파싱 실패 수
           - refId: A
-            relativeTimeRange: { from: 600, to: 0 }
+            relativeTimeRange: { from: 2400, to: 0 }
             datasourceUid: prometheus
             model:
               refId: A
               instant: true
               expr: >-
-                sum(increase(ClickHouseProfileEvents_KafkaMessagesFailed[5m]))
+                sum(increase(ClickHouseProfileEvents_KafkaMessagesFailed[30m]))
           - refId: C
             datasourceUid: __expr__
             model:
@@ -44,7 +44,7 @@ groups:
         annotations:
           summary: "Kafka 메시지 {{ $values.A.Value }}건이 DLQ로 빠졌습니다"
           description: >-
-            최근 5분 동안 ClickHouse Kafka 엔진이 파싱하지 못한 메시지가 {{ $values.A.Value }}건입니다.
+            최근 30분 동안 ClickHouse Kafka 엔진이 파싱하지 못한 메시지가 {{ $values.A.Value }}건입니다.
             적재는 계속되지만 이 메시지는 대상 테이블에 들어가지 않았습니다.
             system.dead_letter_queue에서 table, kafka_partition, kafka_offset, error, raw_message를 확인하고
             scripts/clickhouse-dlq-reprocess.sh로 고쳐 다시 넣으세요.
