@@ -46,7 +46,11 @@ SETTINGS kafka_broker_list = 'kafka-1:9092,kafka-2:9092,kafka-3:9092',
          kafka_max_block_size = 10000,
          kafka_poll_max_batch_size = 10000,
          -- 모은 메시지를 넣는 최대 간격. 기본 7500 → 1000 (#30: p95 7.6초 → 1.7초, 500보다 삽입 횟수 절반)
-         kafka_flush_interval_ms = 1000;
+         kafka_flush_interval_ms = 1000,
+         -- 깨진 메시지(파싱 실패)는 건너뛰고 system.dead_letter_queue에 원본, 키, 위치를 남긴다 (#65 K2, #66).
+         -- 기본값은 같은 위치를 계속 재시도해 그 파티션을 맡은 컨슈머만 멈춘다. 다른 컨슈머는 계속 커밋해 토픽 합계 알림으로는 안 보였다.
+         -- stream 모드와 달리 MV를 고칠 필요가 없다. 서버 설정(config.d/dead-letter-queue.xml)이 없으면 이 테이블 생성이 BAD_ARGUMENTS로 실패한다.
+         kafka_handle_error_mode = 'dead_letter_queue';
 
 -- 2) 최종 저장 테이블. 같은 id가 여러 번 들어오면 머지 때 하나만 남는다.
 CREATE TABLE IF NOT EXISTS mts.executions

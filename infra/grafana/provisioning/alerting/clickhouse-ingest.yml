@@ -1,11 +1,15 @@
-# ClickHouse 적재 정지 알림 (#54)
+# ClickHouse 적재 정지 알림 (#54, #66)
 #
-# 조건: 토픽별로 "lag 1만 건 초과" 그리고 "ClickHouse 컨슈머 그룹의 커밋 오프셋이 2분째 그대로"
-#   - lag는 kafka-exporter의 kafka_consumergroup_lag_sum을 쓰지 않고 (토픽 끝 오프셋 - 그룹 커밋 오프셋)으로 직접 계산한다.
-#     lag_sum은 평상시에도 샘플의 약 16%가 빠졌지만, 두 오프셋은 DETACH 중에도 빠짐없이 수집됐다 (#54 1단계 확인).
-#   - lag만 보면 정상적인 따라잡기 중에도 1만을 넘으므로, 커밋이 멈췄을 때만 알린다.
-#     #49에서는 메시지를 계속 읽었지만 커밋이 0번이었다.
-#   - 2분 기준: E3(#43)에서 관측한 정상 회복은 최대 20초 안팎. 2분 동안 커밋이 없으면 정상 회복이 아니다.
+# 조건: 파티션별로 "lag 2000건 초과" 그리고 "ClickHouse 컨슈머 그룹의 그 파티션 커밋 오프셋이 2분째 그대로"
+#   - #54 첫 버전은 토픽 합계로 판단했다. K2(#65)에서 깨진 메시지 한 건으로 한 컨슈머만 멈췄을 때,
+#     나머지 컨슈머가 계속 커밋해 합계가 변했고 부하 중에는 조건이 한 번도 참이 되지 않았다.
+#     그래서 파티션 단위로 본다. 모든 컨슈머가 멈춘 경우(#49)는 모든 파티션이 각각 걸리므로 함께 잡힌다.
+#   - lag는 kafka-exporter의 lag 지표를 쓰지 않고 (파티션 끝 오프셋 - 그룹 커밋 오프셋)으로 직접 계산한다.
+#     lag 지표는 평상시에도 샘플이 빠졌지만, 두 오프셋은 DETACH 중에도 빠짐없이 수집됐다 (#54 1단계 확인).
+#   - lag만 보면 정상적인 따라잡기 중에도 기준을 넘으므로, 커밋이 멈췄을 때만 알린다.
+#   - 2000건: E5(#64)에서 파티션 해소 기준으로 쓴 값. 80 TPS에서 파티션 하나에 쌓이는 데 약 30초.
+#   - 2분: E3(#43)에서 관측한 정상 회복은 최대 20초 안팎. 2분 동안 커밋이 없으면 정상 회복이 아니다.
+#   - 메시지가 들어오지 않는 파티션은 lag가 0이라 커밋이 없어도 걸리지 않는다.
 # 알림은 Grafana 화면(대시보드 상단 "알림" 패널, Alerting 메뉴)에 표시한다. 로컬 환경이라 외부 채널은 두지 않는다.
 apiVersion: 1
 
@@ -19,7 +23,7 @@ groups:
         title: ClickHouse 적재 정지
         condition: C
         data:
-          # A: 토픽별 정지 여부 (1 = lag 1만 초과 + 2분간 커밋 변화 없음, 0 = 정상). 항상 값이 나오므로 지표가 끊기면 NoData로 드러난다
+          # A: 파티션별 정지 여부 (1 = lag 2000 초과 + 2분간 커밋 변화 없음, 0 = 정상). 항상 값이 나오므로 지표가 끊기면 NoData로 드러난다
           - refId: A
             relativeTimeRange: { from: 300, to: 0 }
             datasourceUid: prometheus
@@ -28,17 +32,17 @@ groups:
               instant: true
               expr: >-
                 (
-                  sum by (topic) (kafka_topic_partition_current_offset{topic=~"mts\\.trading\\..+"})
-                  - on (topic)
-                  sum by (topic) (kafka_consumergroup_current_offset_sum{consumergroup=~"clickhouse-.+"})
-                  > bool 10000
+                  max by (topic, partition) (kafka_topic_partition_current_offset{topic=~"mts\\.trading\\..+"})
+                  - on (topic, partition) group_right
+                  max by (consumergroup, topic, partition) (kafka_consumergroup_current_offset{consumergroup=~"clickhouse-.+"})
+                  > bool 2000
                 )
-                * on (topic)
+                * on (consumergroup, topic, partition)
                 (
-                  sum by (topic) (changes(kafka_consumergroup_current_offset_sum{consumergroup=~"clickhouse-.+"}[2m]))
+                  max by (consumergroup, topic, partition) (changes(kafka_consumergroup_current_offset{consumergroup=~"clickhouse-.+"}[2m]))
                   == bool 0
                 )
-          # B: 알림 문구에 넣을 계산된 lag
+          # B: 알림 문구에 넣을 파티션 lag
           - refId: B
             relativeTimeRange: { from: 300, to: 0 }
             datasourceUid: prometheus
@@ -46,9 +50,9 @@ groups:
               refId: B
               instant: true
               expr: >-
-                sum by (topic) (kafka_topic_partition_current_offset{topic=~"mts\\.trading\\..+"})
-                - on (topic)
-                sum by (topic) (kafka_consumergroup_current_offset_sum{consumergroup=~"clickhouse-.+"})
+                max by (topic, partition) (kafka_topic_partition_current_offset{topic=~"mts\\.trading\\..+"})
+                - on (topic, partition) group_right
+                max by (consumergroup, topic, partition) (kafka_consumergroup_current_offset{consumergroup=~"clickhouse-.+"})
           - refId: C
             datasourceUid: __expr__
             model:
@@ -64,7 +68,10 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "{{ $labels.topic }} 적재가 멈췄습니다"
+          summary: "{{ $labels.topic }} 파티션 {{ $labels.partition }} 적재가 멈췄습니다"
           description: >-
-            {{ $labels.topic }}의 ClickHouse 컨슈머가 2분 넘게 오프셋을 커밋하지 않고, 쌓인 메시지가 {{ $values.B.Value }}건입니다.
-            system.kafka_consumers의 exceptions와 last_commit_time을 확인하세요 (#49 사례: TOO_MANY_PARTS로 같은 위치 재시도).
+            {{ $labels.consumergroup }}가 {{ $labels.topic }} 파티션 {{ $labels.partition }}의 오프셋을 2분 넘게 커밋하지 않고,
+            쌓인 메시지가 {{ $values.B.Value }}건입니다.
+            system.kafka_consumers의 exceptions 문구에 적힌 partition과 offset을 확인하세요.
+            예외는 멈추지 않은 컨슈머에도 같은 문구로 기록되므로 컨슈머 수가 아니라 문구 안의 위치를 봅니다 (#65 K2).
+            #49 사례: TOO_MANY_PARTS로 같은 위치 재시도.
